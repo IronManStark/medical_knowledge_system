@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}医学知识库系统{% endblock %}</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+</head>
+<body>
+<div class="app-layout">
+    <!-- 侧边导航 -->
+    <aside class="sidebar">
+        <div class="sidebar-header">
+            <div class="icon">医</div>
+            <span>医学知识库</span>
+        </div>
+        <nav class="nav-section">
+            <div class="nav-section-title">概览</div>
+            <a href="{{ url_for('dashboard') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">▣</span> 系统首页
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-title">知识管理</div>
+            <a href="{{ url_for('knowledge_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">▤</span> 知识条目
+            </a>
+            <a href="{{ url_for('knowledge_create') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">✎</span> 知识录入
+            </a>
+            <a href="{{ url_for('knowledge_review_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">✓</span> 知识审核
+            </a>
+            <a href="{{ url_for('knowledge_generate') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">⚡</span> 知识生成
+            </a>
+            <a href="{{ url_for('model_config_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">⚙</span> 模型配置
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-title">分类查阅</div>
+            <a href="{{ url_for('category_tree') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">☙</span> 分类体系
+            </a>
+            <a href="{{ url_for('search') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">🔍</span> 知识检索
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-title">用户管理</div>
+            <a href="{{ url_for('user_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">👤</span> 人员维护
+            </a>
+            <a href="{{ url_for('dept_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">⌂</span> 科室维护
+            </a>
+            <a href="{{ url_for('role_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">🔑</span> 权限维护
+            </a>
+        </nav>
+        <nav class="nav-section">
+            <div class="nav-section-title">辅助功能</div>
+            <a href="{{ url_for('log_list') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">📋</span> 系统日志
+            </a>
+            <a href="{{ url_for('statistics') }}" class="nav-item" onclick="navigate(this)">
+                <span class="nav-icon">📊</span> 统计分析
+            </a>
+        </nav>
+    </aside>
+
+    <!-- 主区域 -->
+    <div class="main-area">
+        <header class="topbar">
+            <div class="topbar-title">{% block page_title %}系统首页{% endblock %}</div>
+            <div class="topbar-user">
+                <div class="user-dropdown" id="user-dropdown">
+                    <div class="dropdown-trigger">
+                        <div class="avatar">{{ current_user.real_name[0] if current_user else '?' }}</div>
+                        <div class="info">
+                            <div class="name">{{ current_user.real_name if current_user else '' }}</div>
+                            <div class="role">{{ current_user.role.name if current_user and current_user.role else '' }}</div>
+                        </div>
+                        <span class="dropdown-arrow">▼</span>
+                    </div>
+                    <div class="dropdown-menu">
+                        <a href="#" class="dropdown-item" onclick="showChangePasswordModal()">修改密码</a>
+                        <a href="{{ url_for('logout') }}" class="dropdown-item">退出</a>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <main class="content-area">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% if messages %}
+                    <div class="flash-messages">
+                        {% for category, message in messages %}
+                            <div class="flash flash-{{ category }}">{{ message }}</div>
+                        {% endfor %}
+                    </div>
+                {% endif %}
+            {% endwith %}
+            {% block content %}{% endblock %}
+        </main>
+    </div>
+</div>
+<div class="modal-overlay" id="password-modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>修改密码</h3>
+            <button type="button" class="modal-close" onclick="hideChangePasswordModal()">×</button>
+        </div>
+        <div class="modal-body">
+            {% with messages = get_flashed_messages(with_categories=true) %}
+                {% for category, message in messages %}
+                    {% if 'password' in message.lower() %}
+                    <div class="flash flash-{{ category }}">{{ message }}</div>
+                    {% endif %}
+                {% endfor %}
+            {% endwith %}
+            <form id="change-password-form" method="POST" action="{{ url_for('change_password') }}">
+                {{ change_password_form.csrf_token if change_password_form else '' }}
+                <div class="form-group">
+                    <label>原密码</label>
+                    <input type="password" name="old_password" class="form-control" placeholder="请输入原密码" required>
+                </div>
+                <div class="form-group">
+                    <label>新密码</label>
+                    <input type="password" name="new_password" class="form-control" placeholder="请输入新密码（至少6位）" required>
+                </div>
+                <div class="form-group">
+                    <label>确认新密码</label>
+                    <input type="password" name="confirm_password" class="form-control" placeholder="请再次输入新密码" required>
+                </div>
+                <div class="modal-actions">
+                    <button type="button" class="btn btn-default" onclick="hideChangePasswordModal()">取消</button>
+                    <button type="submit" class="btn btn-primary">确认修改</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+function showChangePasswordModal() {
+    document.getElementById('password-modal').style.display = 'flex';
+}
+
+function hideChangePasswordModal() {
+    document.getElementById('password-modal').style.display = 'none';
+}
+
+document.getElementById('password-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideChangePasswordModal();
+    }
+});
+
+document.getElementById('user-dropdown').addEventListener('click', function(e) {
+    e.stopPropagation();
+    this.classList.toggle('open');
+});
+
+document.addEventListener('click', function() {
+    document.getElementById('user-dropdown').classList.remove('open');
+});
+
+function navigate(el) {
+    var sidebar = document.querySelector('.sidebar');
+    sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
+    window.location.href = el.href;
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    var savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
+    if (savedScrollTop !== null) {
+        var sidebar = document.querySelector('.sidebar');
+        sidebar.scrollTop = parseInt(savedScrollTop);
+    }
+});
+</script>
+<script src="{{ url_for('static', filename='js/main.js') }}"></script>
+</body>
+</html>

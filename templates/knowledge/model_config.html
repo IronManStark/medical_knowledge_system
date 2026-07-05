@@ -1,0 +1,65 @@
+{% extends "layout.html" %}
+{% block title %}模型配置 - 医学知识库系统{% endblock %}
+{% block page_title %}模型接口配置{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>模型接口配置列表</h3>
+        <a href="{{ url_for('model_config_create') }}" class="btn btn-primary btn-sm">+ 新增配置</a>
+    </div>
+    <div class="card-body">
+        <div class="flash flash-info" style="margin-bottom:16px;">
+            在此配置可访问的模型接口地址与密钥。系统同一时间仅启用一个模型配置，
+            知识生成功能将调用当前启用的模型。
+        </div>
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>配置名称</th>
+                    <th>接口地址</th>
+                    <th>模型标识</th>
+                    <th>温度</th>
+                    <th>最大Token</th>
+                    <th>状态</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in configs %}
+                <tr>
+                    <td>{{ c.id }}</td>
+                    <td>{{ c.name }}</td>
+                    <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ c.api_url }}</td>
+                    <td>{{ c.model_name }}</td>
+                    <td>{{ c.temperature }}</td>
+                    <td>{{ c.max_tokens }}</td>
+                    <td>
+                        {% if c.is_active %}
+                            <span class="badge badge-published">已启用</span>
+                        {% else %}
+                            <span class="badge badge-draft">未启用</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <a href="{{ url_for('model_config_edit', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        {% if not c.is_active %}
+                        <form method="POST" action="{{ url_for('model_config_activate', cid=c.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-success btn-sm">启用</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('model_config_delete', cid=c.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not configs %}
+                <tr><td colspan="8"><div class="empty-state"><div class="icon">⚙</div>暂无模型配置，请新增</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

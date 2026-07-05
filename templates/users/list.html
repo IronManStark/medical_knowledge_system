@@ -1,0 +1,90 @@
+{% extends "layout.html" %}
+{% block title %}人员维护 - 医学知识库系统{% endblock %}
+{% block page_title %}人员维护{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>人员列表</h3>
+        <a href="{{ url_for('user_create') }}" class="btn btn-primary btn-sm">+ 新增人员</a>
+    </div>
+    <div class="card-body">
+        <form class="search-bar" method="GET" id="searchForm">
+            <input type="text" name="keyword" class="form-control" id="searchKeyword" placeholder="账号/姓名" value="{{ keyword }}">
+            <select name="dept" class="form-control">
+                <option value="0">全部科室</option>
+                {% for d in departments %}
+                    <option value="{{ d.id }}" {% if dept_id == d.id %}selected{% endif %}>{{ d.name }}</option>
+                {% endfor %}
+            </select>
+            <button type="submit" class="btn btn-primary btn-sm">查询</button>
+            <a href="{{ url_for('user_list') }}" class="btn btn-default btn-sm">重置</a>
+        </form>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>登录账号</th>
+                    <th>真实姓名</th>
+                    <th>所属科室</th>
+                    <th>角色</th>
+                    <th>邮箱</th>
+                    <th>电话</th>
+                    <th>状态</th>
+                    <th>最后登录</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for u in users %}
+                <tr>
+                    <td>{{ u.id }}</td>
+                    <td>{{ u.username }}</td>
+                    <td>{{ u.real_name }}</td>
+                    <td>{{ u.department.name if u.department else '—' }}</td>
+                    <td>{{ u.role.name if u.role else '—' }}</td>
+                    <td>{{ u.email or '—' }}</td>
+                    <td>{{ u.phone or '—' }}</td>
+                    <td>
+                        {% if u.status == 'active' %}
+                            <span class="badge badge-active">正常</span>
+                        {% else %}
+                            <span class="badge badge-disabled">停用</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ u.last_login|fmt_date if u.last_login else '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('user_edit', uid=u.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        <form method="POST" action="{{ url_for('user_delete', uid=u.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not users %}
+                <tr><td colspan="10"><div class="empty-state"><div class="icon">📂</div>暂无人员数据</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {% if pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('user_list', page=pagination.prev_num, keyword=keyword, dept=dept_id) }}">上一页</a>
+            {% endif %}
+            {% for p in range(1, pagination.pages + 1) %}
+                {% if p == pagination.page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('user_list', page=p, keyword=keyword, dept=dept_id) }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+                <a href="{{ url_for('user_list', page=pagination.next_num, keyword=keyword, dept=dept_id) }}">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

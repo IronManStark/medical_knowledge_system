@@ -1,0 +1,98 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'create' %}新增角色{% else %}编辑角色{% endif %} - 医学知识库系统{% endblock %}
+{% block page_title %}{% if mode == 'create' %}新增角色{% else %}编辑角色{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if mode == 'create' %}新增角色信息{% else %}编辑角色信息{% endif %}</h3>
+        <a href="{{ url_for('role_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>角色名称 *</label>
+                    {{ form.name(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>角色编码 *</label>
+                    {{ form.code(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>权限分配</label>
+                <div class="permission-tree">
+                    {% for group in catalog %}
+                    <div class="perm-group">
+                        <div class="perm-group-header">
+                            <label class="checkbox-item">
+                                <input type="checkbox" class="group-checkbox" data-group="{{ group.code }}">
+                                {{ group.name }}
+                            </label>
+                        </div>
+                        <div class="perm-group-items">
+                            {% for code, label in group["children"] %}
+                            <label class="checkbox-item">
+                                <input type="checkbox" name="permissions" value="{{ code }}"
+                                    {% if role and role.has_permission(code) %}checked{% endif %}>
+                                {{ label }}
+                            </label>
+                            {% endfor %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                {{ form.remark(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保 存</button>
+                <a href="{{ url_for('role_list') }}" class="btn btn-default">取 消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var groupCheckboxes = document.querySelectorAll('.group-checkbox');
+    
+    groupCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            var groupCode = this.getAttribute('data-group');
+            var items = this.closest('.perm-group').querySelectorAll('input[name="permissions"]');
+            items.forEach(function(item) {
+                item.checked = checkbox.checked;
+            });
+        });
+    });
+    
+    var permCheckboxes = document.querySelectorAll('input[name="permissions"]');
+    permCheckboxes.forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            var group = this.closest('.perm-group');
+            var groupCheckbox = group.querySelector('.group-checkbox');
+            var items = group.querySelectorAll('input[name="permissions"]');
+            var allChecked = Array.from(items).every(function(i) { return i.checked; });
+            var noneChecked = Array.from(items).every(function(i) { return !i.checked; });
+            
+            groupCheckbox.indeterminate = !allChecked && !noneChecked;
+            groupCheckbox.checked = allChecked;
+        });
+    });
+    
+    groupCheckboxes.forEach(function(checkbox) {
+        var group = checkbox.closest('.perm-group');
+        var items = group.querySelectorAll('input[name="permissions"]');
+        var allChecked = Array.from(items).every(function(i) { return i.checked; });
+        var noneChecked = Array.from(items).every(function(i) { return !i.checked; });
+        checkbox.indeterminate = !allChecked && !noneChecked;
+        checkbox.checked = allChecked;
+    });
+});
+</script>
+{% endblock %}

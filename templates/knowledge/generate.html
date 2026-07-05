@@ -1,0 +1,53 @@
+{% extends "layout.html" %}
+{% block title %}医学知识生成 - 医学知识库系统{% endblock %}
+{% block page_title %}医学知识生成{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>知识条目自动生成</h3>
+    </div>
+    <div class="card-body">
+        {% if not active_cfg %}
+        <div class="flash flash-warning">
+            尚未配置启用的模型接口。请先前往
+            <a href="{{ url_for('model_config_list') }}">模型配置</a>
+            页面添加并启用一个模型配置。
+        </div>
+        {% endif %}
+
+        <div style="background:#f8f9fa; border-radius:6px; padding:16px; margin-bottom:20px;">
+            <strong style="color:#1a73e8;">使用说明：</strong>
+            <p style="margin-top:8px; color:#666; line-height:1.8;">
+                输入一个医学知识名称（如疾病名、药物名），系统将调用当前启用的模型接口，
+                按照知识录入模板的结构自动生成包含摘要、定义、病因、临床表现、诊断标准、
+                治疗方案、预防措施等字段的结构化知识内容。生成后可人工编辑审核。
+            </p>
+            <p style="color:#888; font-size:12px; margin-top:8px;">
+                当前启用模型：<strong>{{ active_cfg.name if active_cfg else '无' }}</strong>
+                {% if active_cfg %}（{{ active_cfg.model_name }}）{% endif %}
+            </p>
+        </div>
+
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    <label>知识名称 *</label>
+                    {{ form.title(class="form-control", placeholder="如：2型糖尿病、急性心肌梗死、阿司匹林") }}
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>所属分类</label>
+                    {{ form.category_id(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-success" {% if not active_cfg %}disabled{% endif %}>
+                    ⚡ 开始生成
+                </button>
+                <a href="{{ url_for('model_config_list') }}" class="btn btn-default">配置模型</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

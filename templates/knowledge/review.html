@@ -1,0 +1,58 @@
+{% extends "layout.html" %}
+{% block title %}知识审核 - 医学知识库系统{% endblock %}
+{% block page_title %}知识审核{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>待审核知识列表</h3>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>知识标题</th>
+                    <th>分类</th>
+                    <th>来源</th>
+                    <th>摘要</th>
+                    <th>创建人</th>
+                    <th>提交时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.title }}</td>
+                    <td>{{ e.category.name if e.category else '—' }}</td>
+                    <td>
+                        {% if e.source == 'manual' %}
+                            <span class="badge badge-manual">手工</span>
+                        {% else %}
+                            <span class="badge badge-manual">系统生成</span>
+                        {% endif %}
+                    </td>
+                    <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.summary or '—' }}</td>
+                    <td>{{ e.author.real_name if e.author else '—' }}</td>
+                    <td>{{ e.updated_at|fmt_date }}</td>
+                    <td>
+                        <a href="{{ url_for('entry_detail', eid=e.id) }}" class="btn btn-default btn-sm">查看</a>
+                        <form method="POST" action="{{ url_for('knowledge_approve', eid=e.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-success btn-sm">通过</button>
+                        </form>
+                        <form method="POST" action="{{ url_for('knowledge_reject', eid=e.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-reject">驳回</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not entries %}
+                <tr><td colspan="8"><div class="empty-state"><div class="icon">✓</div>暂无待审核条目</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block title %}权限维护 - 医学知识库系统{% endblock %}
+{% block page_title %}权限维护{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>角色与权限列表</h3>
+        <a href="{{ url_for('role_create') }}" class="btn btn-primary btn-sm">+ 新增角色</a>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>角色名称</th>
+                    <th>角色编码</th>
+                    <th>已分配权限</th>
+                    <th>用户数</th>
+                    <th>备注</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for r in roles %}
+                <tr>
+                    <td>{{ r.id }}</td>
+                    <td>{{ r.name }}</td>
+                    <td>{{ r.code }}</td>
+                    <td>
+                        {% if r.permissions %}
+                            {% set perms = r.permissions.split(',') %}
+                            {% for p in perms %}
+                                {% for item in catalog %}
+                                    {% if "children" in item %}
+                                        {% for code, label in item["children"] %}
+                                            {% if code == p %}
+                                            <span class="badge badge-manual permission-badge" onclick="showPermissionUsers('{{ code }}', '{{ label }}')">{{ label }}</span>
+                                            {% endif %}
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <span style="color:#ccc;">无</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="user-count-badge" onclick="showRoleUsers({{ r.id }}, '{{ r.name }}')">
+                            {{ r.users.count() }}
+                        </span>
+                    </td>
+                    <td>{{ r.remark or '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('role_edit', rid=r.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        <form method="POST" action="{{ url_for('role_delete', rid=r.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not roles %}
+                <tr><td colspan="7"><div class="empty-state"><div class="icon">📂</div>暂无角色数据</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<div class="modal-overlay" id="user-modal" style="display:none;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3 id="modal-title">角色用户列表</h3>
+            <button type="button" class="modal-close" onclick="hideUserModal()">×</button>
+        </div>
+        <div class="modal-body">
+            <div id="users-list"></div>
+        </div>
+    </div>
+</div>
+
+<script>
+function showRoleUsers(roleId, roleName) {
+    document.getElementById('modal-title').textContent = '角色"' + roleName + '"下的用户';
+    document.getElementById('users-list').innerHTML = '<div class="loading">加载中...</div>';
+    document.getElementById('user-modal').style.display = 'flex';
+    
+    fetch('/api/users/role/' + roleId)
+        .then(function(response) { return response.json(); })
+        .then(function(data) {
+            var list = document.getElementById('users-list');
+            if (data.length === 0) {
+                list.innerHTML = '<div class="empty-state"><div class="icon">👤</div>该角色暂无用户</div>';
+                return;
+            }
+            var html = '<table class="data-table"><thead><tr><th>账号</th><th>姓名</th><th>科室</th></tr></thead><tbody>';
+            data.forEach(function(user) {
+                html += '<tr><td>' + user.username + '</td><td>' + user.real_name + '</td><td>' + (user.dept_name || '—') + '</td></tr>';
+            });
+            html += '</tbody></table>';
+            list.innerHTML = html;
+        })
+        .catch(function() {
+            document.getElementById('users-list').innerHTML = '<div class="empty-state"><div class="icon">❌</div>加载失败</div>';
+        });
+}
+
+function hideUserModal() {
+    document.getElementById('user-modal').style.display = 'none';
+}
+
+document.getElementById('user-modal').addEventListener('click', function(e) {
+    if (e.target === this) {
+        hideUserModal();
+    }
+});
+</script>
+{% endblock %}

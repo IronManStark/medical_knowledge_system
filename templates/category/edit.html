@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'create' %}新增分类{% else %}编辑分类{% endif %} - 医学知识库系统{% endblock %}
+{% block page_title %}{% if mode == 'create' %}新增分类{% else %}编辑分类{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if mode == 'create' %}新增知识分类{% else %}编辑知识分类{% endif %}</h3>
+        <a href="{{ url_for('category_tree') }}" class="btn btn-default btn-sm">← 返回列表</a>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>分类名称 *</label>
+                    {{ form.name(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>分类编码 *</label>
+                    {{ form.code(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>上级分类</label>
+                    {{ form.parent_id(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>排列序号</label>
+                    {{ form.sort_order(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>描述</label>
+                {{ form.description(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保 存</button>
+                <a href="{{ url_for('category_tree') }}" class="btn btn-default">取 消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,81 @@
+{% extends "layout.html" %}
+{% block title %}{{ entry.title }} - 医学知识库系统{% endblock %}
+{% block page_title %}知识详情{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>知识详情</h3>
+        <a href="{{ url_for('search') }}" class="btn btn-default btn-sm">← 返回</a>
+    </div>
+    <div class="card-body entry-detail">
+        <h2>{{ entry.title }}</h2>
+        <div class="meta">
+            分类：{{ entry.category.name if entry.category else '未分类' }} |
+            来源：
+            {% if entry.source == 'manual' %}手工录入{% else %}系统生成{% endif %} |
+            版本：v{{ entry.version }} |
+            创建人：{{ entry.author.real_name if entry.author else '—' }} |
+            更新：{{ entry.updated_at|fmt_date }}
+            {% if entry.reviewed_at %} | 审核：{{ entry.reviewer.real_name if entry.reviewer else '—' }} {{ entry.reviewed_at|fmt_date }}{% endif %}
+        </div>
+
+        {% if entry.tags %}
+        <div style="margin-bottom:16px;">
+            {% for tag in entry.tags.split(',') %}
+                <span class="badge badge-manual" style="margin-right:4px;">{{ tag.strip() }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
+
+        {% if entry.summary %}
+        <div class="entry-section">
+            <h4>摘要</h4>
+            <p>{{ entry.summary }}</p>
+        </div>
+        {% endif %}
+        {% if entry.definition %}
+        <div class="entry-section">
+            <h4>定义</h4>
+            <p>{{ entry.definition }}</p>
+        </div>
+        {% endif %}
+        {% if entry.etiology %}
+        <div class="entry-section">
+            <h4>病因</h4>
+            <p>{{ entry.etiology }}</p>
+        </div>
+        {% endif %}
+        {% if entry.clinical_manifestation %}
+        <div class="entry-section">
+            <h4>临床表现</h4>
+            <p>{{ entry.clinical_manifestation }}</p>
+        </div>
+        {% endif %}
+        {% if entry.diagnosis %}
+        <div class="entry-section">
+            <h4>诊断标准</h4>
+            <p>{{ entry.diagnosis }}</p>
+        </div>
+        {% endif %}
+        {% if entry.treatment %}
+        <div class="entry-section">
+            <h4>治疗方案</h4>
+            <p>{{ entry.treatment }}</p>
+        </div>
+        {% endif %}
+        {% if entry.prevention %}
+        <div class="entry-section">
+            <h4>预防措施</h4>
+            <p>{{ entry.prevention }}</p>
+        </div>
+        {% endif %}
+        {% if entry.references %}
+        <div class="entry-section">
+            <h4>参考文献</h4>
+            <p>{{ entry.references }}</p>
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

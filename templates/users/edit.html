@@ -1,0 +1,61 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'create' %}新增人员{% else %}编辑人员{% endif %} - 医学知识库系统{% endblock %}
+{% block page_title %}{% if mode == 'create' %}新增人员{% else %}编辑人员{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if mode == 'create' %}新增人员信息{% else %}编辑人员信息{% endif %}</h3>
+        <a href="{{ url_for('user_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>登录账号 *</label>
+                    {{ form.username(class="form-control", readonly=(mode!='create')) }}
+                </div>
+                <div class="form-group">
+                    <label>真实姓名 *</label>
+                    {{ form.real_name(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>登录口令 {% if mode == 'create' %}*{% else %}(留空不修改){% endif %}</label>
+                    {{ form.password(class="form-control", placeholder="6-50位字符") }}
+                </div>
+                <div class="form-group">
+                    <label>所属科室</label>
+                    {{ form.department_id(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>角色</label>
+                    {{ form.role_id(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>状态</label>
+                    {{ form.status(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>邮箱</label>
+                    {{ form.email(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>联系电话</label>
+                    {{ form.phone(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保 存</button>
+                <a href="{{ url_for('user_list') }}" class="btn btn-default">取 消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

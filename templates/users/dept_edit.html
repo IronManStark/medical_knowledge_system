@@ -1,0 +1,45 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'create' %}新增科室{% else %}编辑科室{% endif %} - 医学知识库系统{% endblock %}
+{% block page_title %}{% if mode == 'create' %}新增科室{% else %}编辑科室{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if mode == 'create' %}新增科室信息{% else %}编辑科室信息{% endif %}</h3>
+        <a href="{{ url_for('dept_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group">
+                    <label>科室名称 *</label>
+                    {{ form.name(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>科室编码 *</label>
+                    {{ form.code(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>上级科室</label>
+                    {{ form.parent_id(class="form-control") }}
+                </div>
+                <div class="form-group">
+                    <label>排列序号</label>
+                    {{ form.sort_order(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>备注</label>
+                {{ form.remark(class="form-control") }}
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保 存</button>
+                <a href="{{ url_for('dept_list') }}" class="btn btn-default">取 消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

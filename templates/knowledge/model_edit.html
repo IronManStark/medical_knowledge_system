@@ -1,0 +1,54 @@
+{% extends "layout.html" %}
+{% block title %}{% if mode == 'create' %}新增模型配置{% else %}编辑模型配置{% endif %} - 医学知识库系统{% endblock %}
+{% block page_title %}{% if mode == 'create' %}新增模型配置{% else %}编辑模型配置{% endif %}{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>{% if mode == 'create' %}新增模型接口配置{% else %}编辑模型接口配置{% endif %}</h3>
+        <a href="{{ url_for('model_config_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+    </div>
+    <div class="card-body">
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-group">
+                <label>配置名称 *</label>
+                {{ form.name(class="form-control", placeholder="如：GPT-4o配置") }}
+            </div>
+            <div class="form-group">
+                <label>接口地址 *</label>
+                {{ form.api_url(class="form-control", placeholder="https://api.example.com/v1/chat/completions") }}
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>接口密钥</label>
+                    {{ form.api_key(class="form-control", placeholder="sk-xxxxx（编辑时留空不修改）") }}
+                </div>
+                <div class="form-group">
+                    <label>模型标识 *</label>
+                    {{ form.model_name(class="form-control", placeholder="如：gpt-4o-mini") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group">
+                    <label>生成温度（0.0-1.0）</label>
+                    {{ form.temperature(class="form-control", placeholder="0.3") }}
+                </div>
+                <div class="form-group">
+                    <label>最大Token数</label>
+                    {{ form.max_tokens(class="form-control", placeholder="2048") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-item">
+                    {{ form.is_active() }} 设为当前启用的模型（将停用其他配置）
+                </label>
+            </div>
+            <div class="form-group">
+                <button type="submit" class="btn btn-primary">保 存</button>
+                <a href="{{ url_for('model_config_list') }}" class="btn btn-default">取 消</a>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

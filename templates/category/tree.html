@@ -1,0 +1,118 @@
+{% extends "layout.html" %}
+{% block title %}分类体系 - 医学知识库系统{% endblock %}
+{% block page_title %}知识分类体系{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>分类体系结构</h3>
+        <a href="{{ url_for('category_create') }}" class="btn btn-primary btn-sm">+ 新增分类</a>
+    </div>
+    <div class="card-body">
+        <div class="flash flash-info" style="margin-bottom:16px;">
+            点击分类名称可浏览该分类下的已发布知识条目。
+        </div>
+        <ul class="tree-list" id="category-tree">
+            {% for c in categories %}
+            <li class="tree-node" draggable="true" data-id="{{ c.id }}" data-level="{{ c.level }}" data-parent="{{ c.parent_id or 0 }}" style="padding-left: {{ (c.level - 1) * 24 }}px;">
+                <span class="drag-handle">☰</span>
+                <a href="{{ url_for('category_browse', cid=c.id) }}" class="node-name">{{ c.name }}</a>
+                <span class="node-code">[{{ c.code }}]</span>
+                <span style="color:#aaa; font-size:12px;">（{{ c.entries.count() }}条）</span>
+                <div class="node-actions">
+                    <a href="{{ url_for('category_browse', cid=c.id) }}" class="btn btn-default btn-sm">浏览</a>
+                    <a href="{{ url_for('category_edit', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
+                    <form method="POST" action="{{ url_for('category_delete', cid=c.id) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                    </form>
+                </div>
+            </li>
+            {% endfor %}
+            {% if not categories %}
+            <div class="empty-state"><div class="icon">📂</div>暂无分类数据</div>
+            {% endif %}
+        </ul>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    var tree = document.getElementById('category-tree');
+    var nodes = tree.querySelectorAll('.tree-node');
+    var draggingNode = null;
+    var dragOverNode = null;
+
+    nodes.forEach(function(node) {
+        node.addEventListener('dragstart', function(e) {
+            draggingNode = this;
+            this.classList.add('dragging');
+            e.dataTransfer.effectAllowed = 'move';
+            e.dataTransfer.setData('text/html', this.innerHTML);
+        });
+
+        node.addEventListener('dragend', function() {
+            this.classList.remove('dragging');
+            draggingNode = null;
+            nodes.forEach(function(n) { n.classList.remove('drag-over'); });
+        });
+
+        node.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            e.dataTransfer.dropEffect = 'move';
+            nodes.forEach(function(n) { n.classList.remove('drag-over'); });
+            this.classList.add('drag-over');
+            dragOverNode = this;
+        });
+
+        node.addEventListener('dragleave', function() {
+            this.classList.remove('drag-over');
+        });
+
+        node.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.classList.remove('drag-over');
+            
+            if (draggingNode && draggingNode !== this) {
+                var draggingId = parseInt(draggingNode.getAttribute('data-id'));
+                var targetId = parseInt(this.getAttribute('data-id'));
+                var targetLevel = parseInt(this.getAttribute('data-level'));
+                var targetParent = parseInt(this.getAttribute('data-parent'));
+                
+                var allNodes = Array.from(tree.querySelectorAll('.tree-node'));
+                var sameLevelNodes = allNodes.filter(function(n) {
+                    return parseInt(n.getAttribute('data-level')) === targetLevel;
+                });
+                
+                var currentIndex = sameLevelNodes.indexOf(draggingNode);
+                var targetIndex = sameLevelNodes.indexOf(this);
+                
+                if (currentIndex !== -1 && targetIndex !== -1) {
+                    sameLevelNodes.splice(currentIndex, 1);
+                    sameLevelNodes.splice(targetIndex, 0, draggingNode);
+                    
+                    var orderIds = sameLevelNodes.map(function(n) {
+                        return parseInt(n.getAttribute('data-id'));
+                    });
+                    
+                    fetch('/categories/reorder', {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                            'X-CSRFToken': '{{ csrf_token() }}'
+                        },
+                        body: JSON.stringify({
+                            parent_id: targetParent,
+                            order_ids: orderIds
+                        })
+                    }).then(function(response) {
+                        if (response.ok) {
+                            location.reload();
+                        }
+                    });
+                }
+            }
+        });
+    });
+});
+</script>
+{% endblock %}

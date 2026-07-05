@@ -1,0 +1,97 @@
+{% extends "layout.html" %}
+{% block title %}知识条目 - 医学知识库系统{% endblock %}
+{% block page_title %}知识条目{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>知识条目列表</h3>
+        <a href="{{ url_for('knowledge_create') }}" class="btn btn-primary btn-sm">+ 录入知识</a>
+    </div>
+    <div class="card-body">
+        <form class="search-bar" method="GET">
+            <select name="status" class="form-control">
+                <option value="">全部状态</option>
+                <option value="draft" {% if status == 'draft' %}selected{% endif %}>草稿</option>
+                <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审核</option>
+                <option value="published" {% if status == 'published' %}selected{% endif %}>已发布</option>
+                <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已驳回</option>
+            </select>
+            <input type="text" name="keyword" class="form-control" placeholder="知识标题" value="{{ keyword }}">
+            <button type="submit" class="btn btn-primary btn-sm">查询</button>
+            <a href="{{ url_for('knowledge_list') }}" class="btn btn-default btn-sm">重置</a>
+        </form>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>知识标题</th>
+                    <th>所属分类</th>
+                    <th>来源</th>
+                    <th>状态</th>
+                    <th>版本</th>
+                    <th>创建人</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.title }}</td>
+                    <td>{{ e.category.name if e.category else '—' }}</td>
+                    <td>
+                        {% if e.source == 'manual' %}
+                            <span class="badge badge-manual">手工录入</span>
+                        {% else %}
+                            <span class="badge badge-manual">系统生成</span>
+                        {% endif %}
+                    </td>
+                    <td><span class="badge badge-{{ e.status }}">{{ e.status|status_label }}</span></td>
+                    <td>v{{ e.version }}</td>
+                    <td>{{ e.author.real_name if e.author else '—' }}</td>
+                    <td>{{ e.updated_at|fmt_date }}</td>
+                    <td>
+                        {% if e.status == 'draft' %}
+                            <a href="{{ url_for('knowledge_edit', eid=e.id) }}" class="btn btn-default btn-sm">编辑</a>
+                            <form method="POST" action="{{ url_for('knowledge_submit', eid=e.id) }}" style="display:inline;">
+                                <button type="submit" class="btn btn-info btn-sm">提交审核</button>
+                            </form>
+                        {% elif e.status == 'rejected' %}
+                            <a href="{{ url_for('knowledge_edit', eid=e.id) }}" class="btn btn-default btn-sm">修改</a>
+                        {% endif %}
+                        <a href="{{ url_for('entry_detail', eid=e.id) }}" class="btn btn-default btn-sm">查看</a>
+                        <form method="POST" action="{{ url_for('knowledge_delete', eid=e.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not entries %}
+                <tr><td colspan="9"><div class="empty-state"><div class="icon">📂</div>暂无知识条目</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {% if pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('knowledge_list', page=pagination.prev_num, status=status, keyword=keyword) }}">上一页</a>
+            {% endif %}
+            {% for p in range(1, pagination.pages + 1) %}
+                {% if p == pagination.page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('knowledge_list', page=p, status=status, keyword=keyword) }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+                <a href="{{ url_for('knowledge_list', page=pagination.next_num, status=status, keyword=keyword) }}">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

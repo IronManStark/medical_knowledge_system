@@ -1,0 +1,50 @@
+{% extends "layout.html" %}
+{% block title %}科室维护 - 医学知识库系统{% endblock %}
+{% block page_title %}科室维护{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>科室列表</h3>
+        <a href="{{ url_for('dept_create') }}" class="btn btn-primary btn-sm">+ 新增科室</a>
+    </div>
+    <div class="card-body">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>科室名称</th>
+                    <th>科室编码</th>
+                    <th>上级科室</th>
+                    <th>排列序号</th>
+                    <th>人员数</th>
+                    <th>备注</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for d in departments %}
+                <tr>
+                    <td>{{ d.id }}</td>
+                    <td>{{ d.name }}</td>
+                    <td>{{ d.code }}</td>
+                    <td>{{ d.parent.name if d.parent else '—' }}</td>
+                    <td>{{ d.sort_order }}</td>
+                    <td>{{ d.users.count() }}</td>
+                    <td>{{ d.remark or '—' }}</td>
+                    <td>
+                        <a href="{{ url_for('dept_edit', did=d.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        <form method="POST" action="{{ url_for('dept_delete', did=d.id) }}" style="display:inline;">
+                            <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                        </form>
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not departments %}
+                <tr><td colspan="8"><div class="empty-state"><div class="icon">📂</div>暂无科室数据</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
