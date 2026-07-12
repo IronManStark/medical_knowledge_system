@@ -16,55 +16,55 @@
         </div>
         <nav class="nav-section">
             <div class="nav-section-title">概览</div>
-            <a href="{{ url_for('dashboard') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('dashboard') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">▣</span> 系统首页
             </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-title">知识管理</div>
-            <a href="{{ url_for('knowledge_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('knowledge_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">▤</span> 知识条目
             </a>
-            <a href="{{ url_for('knowledge_create') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('knowledge_create') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">✎</span> 知识录入
             </a>
-            <a href="{{ url_for('knowledge_review_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('knowledge_review_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">✓</span> 知识审核
             </a>
-            <a href="{{ url_for('knowledge_generate') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('knowledge_generate') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">⚡</span> 知识生成
             </a>
-            <a href="{{ url_for('model_config_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('model_config_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">⚙</span> 模型配置
             </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-title">分类查阅</div>
-            <a href="{{ url_for('category_tree') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('category_tree') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">☙</span> 分类体系
             </a>
-            <a href="{{ url_for('search') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('search') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">🔍</span> 知识检索
             </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-title">用户管理</div>
-            <a href="{{ url_for('user_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('user_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">👤</span> 人员维护
             </a>
-            <a href="{{ url_for('dept_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('dept_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">⌂</span> 科室维护
             </a>
-            <a href="{{ url_for('role_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('role_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">🔑</span> 权限维护
             </a>
         </nav>
         <nav class="nav-section">
             <div class="nav-section-title">辅助功能</div>
-            <a href="{{ url_for('log_list') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('log_list') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">📋</span> 系统日志
             </a>
-            <a href="{{ url_for('statistics') }}" class="nav-item" onclick="navigate(this)">
+            <a href="{{ url_for('statistics') }}" class="nav-item" onclick="navigate(event, this)">
                 <span class="nav-icon">📊</span> 统计分析
             </a>
         </nav>
@@ -167,7 +167,8 @@ document.addEventListener('click', function() {
     document.getElementById('user-dropdown').classList.remove('open');
 });
 
-function navigate(el) {
+function navigate(e, el) {
+    e.preventDefault();
     var sidebar = document.querySelector('.sidebar');
     sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
     window.location.href = el.href;

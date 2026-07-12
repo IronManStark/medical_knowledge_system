@@ -1316,11 +1316,13 @@ def seed_default_data(app: Flask):
 
     if Category.query.count() == 0:
         cats = [
-            Category(name="内科疾病", code="INT_DIS", level=1, sort_order=1, description="内科相关疾病知识"),
-            Category(name="外科疾病", code="SUR_DIS", level=1, sort_order=2, description="外科相关疾病知识"),
-            Category(name="药物知识", code="DRUG", level=1, sort_order=3, description="药品信息"),
-            Category(name="检验知识", code="LAB", level=1, sort_order=4, description="检验检查知识"),
-            Category(name="急救知识", code="EMER", level=1, sort_order=5, description="急救与应急处理"),
+            Category(name="疾病", code="DISEASE", level=1, sort_order=1, description="疾病相关知识"),
+            Category(name="药品", code="MEDICINE", level=1, sort_order=2, description="药品相关知识"),
+            Category(name="检查", code="EXAM", level=1, sort_order=3, description="检查相关知识"),
+            Category(name="检验", code="LAB", level=1, sort_order=4, description="检验相关知识"),
+            Category(name="手术", code="SURGERY", level=1, sort_order=5, description="手术相关知识"),
+            Category(name="麻醉", code="ANESTHESIA", level=1, sort_order=6, description="麻醉相关知识"),
+            Category(name="健康宣教", code="HEALTH_EDU", level=1, sort_order=7, description="健康宣教知识"),
         ]
         db.session.add_all(cats)
 
