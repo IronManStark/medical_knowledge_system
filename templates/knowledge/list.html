@@ -57,6 +57,7 @@
                         {% if e.status == 'draft' %}
                             <a href="{{ url_for('knowledge_edit', eid=e.id) }}" class="btn btn-default btn-sm">编辑</a>
                             <form method="POST" action="{{ url_for('knowledge_submit', eid=e.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                                 <button type="submit" class="btn btn-info btn-sm">提交审核</button>
                             </form>
                         {% elif e.status == 'rejected' %}
@@ -64,6 +65,7 @@
                         {% endif %}
                         <a href="{{ url_for('entry_detail', eid=e.id) }}" class="btn btn-default btn-sm">查看</a>
                         <form method="POST" action="{{ url_for('knowledge_delete', eid=e.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>
                     </td>

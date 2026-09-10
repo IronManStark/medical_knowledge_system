@@ -40,9 +40,11 @@
                     <td>
                         <a href="{{ url_for('entry_detail', eid=e.id) }}" class="btn btn-default btn-sm">查看</a>
                         <form method="POST" action="{{ url_for('knowledge_approve', eid=e.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-success btn-sm">通过</button>
                         </form>
                         <form method="POST" action="{{ url_for('knowledge_reject', eid=e.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-reject">驳回</button>
                         </form>
                     </td>

@@ -1,8 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-医学知识库系统 - 全局配置模块
-负责加载运行参数、数据库连接、会话密钥等配置项
-"""
+"""医学知识库系统 - 配置模块"""
 
 import os
 from pathlib import Path
@@ -11,29 +8,30 @@ BASE_DIR = Path(__file__).resolve().parent
 
 
 class AppConfig:
-    """应用运行期配置集合"""
-
-    # 会话加密密钥，用于 Flask session 签名
     SECRET_KEY = os.environ.get("MKS_SECRET", "mks-9f2a7c4e1b8d3a6f5e0c2d7b4a1e9f3c")
 
-    # SQLite 数据库文件存放路径
-    SQLALCHEMY_DATABASE_URI = "sqlite:///" + str(BASE_DIR / "data" / "mks.db")
+    DB_TYPE = os.environ.get("MKS_DB_TYPE", "sqlite").lower()
+    DB_HOST = os.environ.get("MKS_DB_HOST", "localhost")
+    DB_PORT = int(os.environ.get("MKS_DB_PORT", "3306"))
+    DB_USER = os.environ.get("MKS_DB_USER", "root")
+    DB_PASSWORD = os.environ.get("MKS_DB_PASSWORD", "")
+    DB_NAME = os.environ.get("MKS_DB_NAME", "mks")
+
+    if DB_TYPE == "mysql":
+        SQLALCHEMY_DATABASE_URI = f"mysql+pymysql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+    else:
+        SQLALCHEMY_DATABASE_URI = "sqlite:///" + str(BASE_DIR / "data" / "mks.db")
+
     SQLALCHEMY_TRACK_MODIFICATIONS = False
-
-    # 分页默认条数
     PER_PAGE = 15
-
-    # 上传附件保存目录
     UPLOAD_FOLDER = str(BASE_DIR / "data" / "uploads")
     ALLOWED_EXTENSIONS = {"pdf", "doc", "docx", "png", "jpg", "jpeg"}
 
-    # 默认模型接口配置（运行期可在管理页面动态修改）
-    MODEL_API_URL = "https://api.example.com/v1/chat/completions"
-    MODEL_API_KEY = ""
-    MODEL_MODEL_NAME = "gpt-4o-mini"
+    MODEL_API_URL = os.environ.get("MKS_MODEL_URL", "")
+    MODEL_API_KEY = os.environ.get("MKS_MODEL_KEY", "")
+    MODEL_MODEL_NAME = os.environ.get("MKS_MODEL_NAME", "")
     MODEL_TIMEOUT = 60
 
-    # 会话有效期（小时）
     SESSION_LIFETIME_HOURS = 8
 
 

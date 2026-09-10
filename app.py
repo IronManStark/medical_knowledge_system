@@ -1,10 +1,5 @@
 # -*- coding: utf-8 -*-
-"""
-医学知识库系统 - 主应用入口
-基于 Flask 框架实现，包含认证、用户管理、知识管理、
-分类查阅、日志统计等完整功能模块
-作者：陈的斌
-"""
+"""医学知识库系统 - 主应用入口"""
 
 import json
 import os
@@ -33,9 +28,6 @@ from forms import (
 from utils import log_access
 from utils.model_client import call_model
 
-# --------------------------------------------------------------------------- #
-# 应用工厂
-# --------------------------------------------------------------------------- #
 
 def create_app(env: str = "development") -> Flask:
     app = Flask(__name__)
@@ -66,10 +58,6 @@ def create_app(env: str = "development") -> Flask:
 
     return app
 
-
-# --------------------------------------------------------------------------- #
-# 请求前处理与上下文
-# --------------------------------------------------------------------------- #
 
 def register_before_handlers(app: Flask):
     @app.before_request
@@ -112,9 +100,7 @@ def permission_required(perm_code: str):
     return decorator
 
 
-# --------------------------------------------------------------------------- #
 # 认证路由
-# --------------------------------------------------------------------------- #
 
 def _generate_captcha() -> tuple:
     chars = string.digits + string.ascii_uppercase
@@ -160,24 +146,20 @@ def register_auth_routes(app: Flask):
             session_captcha = session.get("captcha", "").upper()
             if captcha_input != session_captcha:
                 flash("验证码不正确", "danger")
-                session.pop("captcha", None)
                 return render_template("login.html", form=form)
 
             user = User.query.filter_by(username=form.username.data).first()
             if not user:
                 flash("账号或口令不正确", "danger")
-                session.pop("captcha", None)
                 return render_template("login.html", form=form)
 
             if user.lock_time and datetime.now() < user.lock_time:
                 remaining = (user.lock_time - datetime.now()).total_seconds() // 60
                 flash(f"账号已被锁定，请{int(remaining)}分钟后重试", "danger")
-                session.pop("captcha", None)
                 return render_template("login.html", form=form)
 
             if user.status != "active":
                 flash("该账号已被停用，请联系管理员", "danger")
-                session.pop("captcha", None)
                 return render_template("login.html", form=form)
 
             if not user.check_password(form.password.data):
@@ -190,7 +172,6 @@ def register_auth_routes(app: Flask):
                 else:
                     db.session.commit()
                     flash(f"账号或口令不正确，密码已错误{user.failed_attempts}次，连续错误5次需要15分钟后重试", "danger")
-                session.pop("captcha", None)
                 return render_template("login.html", form=form)
 
             user.failed_attempts = 0
@@ -200,6 +181,7 @@ def register_auth_routes(app: Flask):
             session["uid"] = user.id
             user.last_login = datetime.now()
             db.session.commit()
+            session.pop("captcha", None)
             log_access(user, "login", "认证", "用户登录")
             flash("登录成功，欢迎回来", "success")
             nxt = request.args.get("next")
@@ -243,9 +225,7 @@ def register_auth_routes(app: Flask):
         return redirect(url_for("login"))
 
 
-# --------------------------------------------------------------------------- #
 # 仪表盘
-# --------------------------------------------------------------------------- #
 
 def register_dashboard(app: Flask):
     @app.route("/dashboard")
@@ -270,10 +250,6 @@ def register_dashboard(app: Flask):
         }
         return render_template("dashboard.html", stats=stats)
 
-
-# --------------------------------------------------------------------------- #
-# 用户管理（人员维护）
-# --------------------------------------------------------------------------- #
 
 def register_user_routes(app: Flask):
     @app.route("/users")
@@ -376,9 +352,7 @@ def _populate_user_choices(form: UserForm):
     ]
 
 
-# --------------------------------------------------------------------------- #
 # 科室维护
-# --------------------------------------------------------------------------- #
 
 def register_department_routes(app: Flask):
     @app.route("/departments")
@@ -456,9 +430,7 @@ def _populate_dept_choices(form: DepartmentForm, exclude_id=None):
     ]
 
 
-# --------------------------------------------------------------------------- #
 # 权限维护（角色管理）
-# --------------------------------------------------------------------------- #
 
 def register_role_routes(app: Flask):
     PERMISSION_CATALOG = [
@@ -606,9 +578,7 @@ def register_role_routes(app: Flask):
         return jsonify(result)
 
 
-# --------------------------------------------------------------------------- #
 # 知识分类管理
-# --------------------------------------------------------------------------- #
 
 def register_category_routes(app: Flask):
     @app.route("/categories")
@@ -796,9 +766,7 @@ def register_category_routes(app: Flask):
         return render_template("category/detail.html", entry=entry)
 
 
-# --------------------------------------------------------------------------- #
 # 知识管理
-# --------------------------------------------------------------------------- #
 
 def register_knowledge_routes(app: Flask):
     @app.route("/knowledge")
@@ -959,9 +927,7 @@ def _populate_category_choices(form, exclude_id=None):
     ]
 
 
-# --------------------------------------------------------------------------- #
 # 模型配置与知识生成
-# --------------------------------------------------------------------------- #
 
 def register_model_routes(app: Flask):
     @app.route("/model/config")
@@ -1124,9 +1090,7 @@ def _populate_generate_choices(form: KnowledgeGenerateForm):
     ]
 
 
-# --------------------------------------------------------------------------- #
 # 辅助功能：日志与统计
-# --------------------------------------------------------------------------- #
 
 def register_auxiliary_routes(app: Flask):
     @app.route("/logs")
@@ -1243,9 +1207,7 @@ def register_auxiliary_routes(app: Flask):
         )
 
 
-# --------------------------------------------------------------------------- #
 # 模板辅助函数
-# --------------------------------------------------------------------------- #
 
 def register_template_helpers(app: Flask):
     @app.template_filter("fmt_date")
@@ -1267,9 +1229,7 @@ def register_template_helpers(app: Flask):
         return mapping.get(value, value)
 
 
-# --------------------------------------------------------------------------- #
 # 初始化默认数据
-# --------------------------------------------------------------------------- #
 
 def seed_default_data(app: Flask):
     """首次启动时写入默认管理员、角色、科室与分类"""
@@ -1329,9 +1289,7 @@ def seed_default_data(app: Flask):
     db.session.commit()
 
 
-# --------------------------------------------------------------------------- #
 # 启动入口
-# --------------------------------------------------------------------------- #
 
 app = create_app(os.environ.get("MKS_ENV", "development"))
 

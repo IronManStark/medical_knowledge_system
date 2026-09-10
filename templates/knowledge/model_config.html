@@ -46,10 +46,12 @@
                         <a href="{{ url_for('model_config_edit', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
                         {% if not c.is_active %}
                         <form method="POST" action="{{ url_for('model_config_activate', cid=c.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-success btn-sm">启用</button>
                         </form>
                         {% endif %}
                         <form method="POST" action="{{ url_for('model_config_delete', cid=c.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>
                     </td>
