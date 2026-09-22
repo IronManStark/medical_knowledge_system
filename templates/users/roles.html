@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>角色与权限列表</h3>
-        <a href="{{ url_for('role_create') }}" class="btn btn-primary btn-sm">+ 新增角色</a>
+        <a href="{{ url_for('juese_xinzeng') }}" class="btn btn-primary btn-sm">+ 新增角色</a>
     </div>
     <div class="card-body">
         <table class="data-table">
@@ -52,8 +52,8 @@
                     </td>
                     <td>{{ r.remark or '—' }}</td>
                     <td>
-                        <a href="{{ url_for('role_edit', rid=r.id) }}" class="btn btn-default btn-sm">编辑</a>
-                        <form method="POST" action="{{ url_for('role_delete', rid=r.id) }}" style="display:inline;">
+                        <a href="{{ url_for('juese_bianji', rid=r.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        <form method="POST" action="{{ url_for('juese_shanchu', rid=r.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>

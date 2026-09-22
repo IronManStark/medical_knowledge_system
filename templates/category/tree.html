@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>分类体系结构</h3>
-        <a href="{{ url_for('category_create') }}" class="btn btn-primary btn-sm">+ 新增分类</a>
+        <a href="{{ url_for('fenlei_xinzeng') }}" class="btn btn-primary btn-sm">+ 新增分类</a>
     </div>
     <div class="card-body">
         <div class="flash flash-info" style="margin-bottom:16px;">
@@ -16,16 +16,22 @@
             {% for c in categories %}
             <li class="tree-node" draggable="true" data-id="{{ c.id }}" data-level="{{ c.level }}" data-parent="{{ c.parent_id or 0 }}" style="padding-left: {{ (c.level - 1) * 24 }}px;">
                 <span class="drag-handle">☰</span>
-                <a href="{{ url_for('category_browse', cid=c.id) }}" class="node-name">{{ c.name }}</a>
+                <a href="{{ url_for('fenlei_liulan', cid=c.id) }}" class="node-name">{{ c.name }}</a>
                 <span class="node-code">[{{ c.code }}]</span>
                 <span style="color:#aaa; font-size:12px;">（{{ c.entries.count() }}条）</span>
                 <div class="node-actions">
-                    <a href="{{ url_for('category_browse', cid=c.id) }}" class="btn btn-default btn-sm">浏览</a>
-                    <a href="{{ url_for('category_edit', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
-                    <form method="POST" action="{{ url_for('category_delete', cid=c.id) }}" style="display:inline;">
+                    {% set n_tiao = c.entries.count() %}
+                    {% set bu_ke_shan = n_tiao > 0 or c.sub_categories %}
+                    <a href="{{ url_for('fenlei_liulan', cid=c.id) }}" class="btn btn-default btn-sm">浏览</a>
+                    <a href="{{ url_for('fenlei_bianji', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
+                    {% if bu_ke_shan %}
+                    <span class="btn btn-hui btn-sm" title="该分类下还有 {% if n_tiao > 0 %}{{ n_tiao }} 条知识{% endif %}{% if c.sub_categories %}{% if n_tiao > 0 %}或{% endif %}子分类{% endif %}，清空后才能删除">删除</span>
+                    {% else %}
+                    <form method="POST" action="{{ url_for('fenlei_shanchu', cid=c.id) }}" style="display:inline;">
                         <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                         <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                     </form>
+                    {% endif %}
                 </div>
             </li>
             {% endfor %}

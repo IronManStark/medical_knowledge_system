@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>{% if mode == 'create' %}新增模型接口配置{% else %}编辑模型接口配置{% endif %}</h3>
-        <a href="{{ url_for('model_config_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+        <a href="{{ url_for('moxing_liebiao') }}" class="btn btn-default btn-sm">← 返回列表</a>
     </div>
     <div class="card-body">
         <form method="POST">
@@ -25,19 +25,38 @@
                     {{ form.api_key(class="form-control", placeholder="sk-xxxxx（编辑时留空不修改）") }}
                 </div>
                 <div class="form-group">
-                    <label>模型标识 *</label>
-                    {{ form.model_name(class="form-control", placeholder="如：gpt-4o-mini") }}
+                    <label>模型名称 *</label>
+                    {{ form.model_name(class="form-control", placeholder="如：gpt-4o-mini（不可与已有配置重复）") }}
                 </div>
             </div>
             <div class="form-row">
                 <div class="form-group">
                     <label>生成温度（0.0-1.0）</label>
-                    {{ form.temperature(class="form-control", placeholder="0.3") }}
+                    {{ form.temperature(class="form-control", value=(form.temperature.data if form.temperature.data is not none else 0.3), placeholder="0.3") }}
                 </div>
                 <div class="form-group">
                     <label>最大Token数</label>
-                    {{ form.max_tokens(class="form-control", placeholder="2048") }}
+                    {{ form.max_tokens(class="form-control", value=(form.max_tokens.data if form.max_tokens.data is not none else 2048), placeholder="2048") }}
                 </div>
+            </div>
+            <div class="form-group">
+                <label>
+                    生成提示词
+                    <button type="button" class="btn btn-default btn-sm" id="huifu-moren"
+                            style="margin-left:8px;padding:2px 10px;font-size:12px;">恢复默认提示词</button>
+                </label>
+                {{ form.ti_shi_ci(class="form-control", rows="14", id="ti-shi-ci",
+                    style="font-family:Menlo,Consolas,monospace;font-size:13px;line-height:1.6;white-space:pre;",
+                    placeholder="请输入生成知识时发给模型的提示词") }}
+                <div style="color:#94a3b8;font-size:12px;margin-top:6px;line-height:1.7;">
+                    提示：<code style="background:#f1f5f9;padding:1px 6px;border-radius:4px;">{title}</code>
+                    为占位符，生成时会自动替换成填写的知识名称；留空保存则使用系统默认提示词。点击「恢复默认提示词」可还原内置模板。
+                </div>
+            </div>
+            <div class="form-group">
+                <label class="checkbox-item">
+                    {{ form.si_kao_mo_shi() }} 开启思考模式（让模型先推理再作答，耗时更长但更严谨）
+                </label>
             </div>
             <div class="form-group">
                 <label class="checkbox-item">
@@ -46,9 +65,23 @@
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">保 存</button>
-                <a href="{{ url_for('model_config_list') }}" class="btn btn-default">取 消</a>
+                <a href="{{ url_for('moxing_liebiao') }}" class="btn btn-default">取 消</a>
             </div>
         </form>
     </div>
 </div>
+
+<script type="text/plain" id="moren-tishi-yuan">{{ moren_tishi or '' }}</script>
+<script>
+(function () {
+    var an = document.getElementById('huifu-moren');
+    var kuang = document.getElementById('ti-shi-ci');
+    var yuan = document.getElementById('moren-tishi-yuan');
+    if (!an || !kuang || !yuan) { return; }
+    an.addEventListener('click', function () {
+        kuang.value = yuan.textContent;
+        kuang.focus();
+    });
+})();
+</script>
 {% endblock %}

@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>模型接口配置列表</h3>
-        <a href="{{ url_for('model_config_create') }}" class="btn btn-primary btn-sm">+ 新增配置</a>
+        <a href="{{ url_for('moxing_xinzeng') }}" class="btn btn-primary btn-sm">+ 新增配置</a>
     </div>
     <div class="card-body">
         <div class="flash flash-info" style="margin-bottom:16px;">
@@ -19,7 +19,8 @@
                     <th>ID</th>
                     <th>配置名称</th>
                     <th>接口地址</th>
-                    <th>模型标识</th>
+                    <th>模型名称</th>
+                    <th>思考模式</th>
                     <th>温度</th>
                     <th>最大Token</th>
                     <th>状态</th>
@@ -33,6 +34,13 @@
                     <td>{{ c.name }}</td>
                     <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis;">{{ c.api_url }}</td>
                     <td>{{ c.model_name }}</td>
+                    <td>
+                        {% if c.si_kao_mo_shi %}
+                            <span class="badge badge-published">已开启</span>
+                        {% else %}
+                            <span class="badge badge-draft">关闭</span>
+                        {% endif %}
+                    </td>
                     <td>{{ c.temperature }}</td>
                     <td>{{ c.max_tokens }}</td>
                     <td>
@@ -43,22 +51,28 @@
                         {% endif %}
                     </td>
                     <td>
-                        <a href="{{ url_for('model_config_edit', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
-                        {% if not c.is_active %}
-                        <form method="POST" action="{{ url_for('model_config_activate', cid=c.id) }}" style="display:inline;">
+                        <a href="{{ url_for('moxing_bianji', cid=c.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        {% if c.is_active %}
+                        <form method="POST" action="{{ url_for('moxing_tingyong', cid=c.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-warning btn-sm">停用</button>
+                        </form>
+                        <span class="btn btn-hui btn-sm" title="正在启用中，请先停用后再删除">删除</span>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('moxing_qiyong', cid=c.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-success btn-sm">启用</button>
                         </form>
-                        {% endif %}
-                        <form method="POST" action="{{ url_for('model_config_delete', cid=c.id) }}" style="display:inline;">
+                        <form method="POST" action="{{ url_for('moxing_shanchu', cid=c.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 {% if not configs %}
-                <tr><td colspan="8"><div class="empty-state"><div class="icon">⚙</div>暂无模型配置，请新增</div></td></tr>
+                <tr><td colspan="9"><div class="empty-state"><div class="icon">⚙</div>暂无模型配置，请新增</div></td></tr>
                 {% endif %}
             </tbody>
         </table>

@@ -3,13 +3,26 @@
 {% block page_title %}{% if mode == 'create' %}知识录入{% else %}编辑知识{% endif %}{% endblock %}
 
 {% block content %}
+{% set ke_guanli = current_user.role and (current_user.role.code == 'admin' or current_user.role.shifou_youquan('knowledge_review')) %}
+{% set lai_can = request.args.get('lai', '') %}
+{% if mode == 'create' %}
+{% set hui = 'wo_de_zhishi' %}
+{% elif lai_can == 'shengcheng' %}
+{% set hui = 'wo_de_shengcheng' %}
+{% elif lai_can == 'wode' %}
+{% set hui = 'wo_de_zhishi' %}
+{% elif ke_guanli %}
+{% set hui = 'zhishi_liebiao' %}
+{% else %}
+{% set hui = 'wo_de_shengcheng' if (entry and entry.source == 'generated') else 'wo_de_zhishi' %}
+{% endif %}
 <div class="card">
     <div class="card-header">
         <h3>{% if mode == 'create' %}知识条目录入{% else %}编辑知识条目{% endif %}</h3>
-        <a href="{{ url_for('knowledge_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+        <a href="{{ url_for(hui) }}" class="btn btn-default btn-sm">← 返回列表</a>
     </div>
     <div class="card-body">
-        <form method="POST">
+        <form method="POST" id="zhushi-biaodan">
             {{ form.csrf_token }}
             <div class="form-row">
                 <div class="form-group" style="flex:2;">
@@ -19,6 +32,16 @@
                 <div class="form-group" style="flex:1;">
                     <label>所属分类</label>
                     {{ form.category_id(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>ICD编码</label>
+                    {{ form.icd_code(class="form-control", placeholder="如：E11.9（可选）") }}
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>证据等级</label>
+                    {{ form.evidence_level(class="form-control") }}
                 </div>
             </div>
             <div class="form-group">
@@ -57,11 +80,164 @@
                 <label>参考文献</label>
                 {{ form.references(class="form-control", rows=3) }}
             </div>
+
+            {% include "knowledge/_wenjian_pian.html" %}
+
+            {% if mode == 'edit' and entry %}
+            <hr style="margin:24px 0;border:none;border-top:1px dashed #ddd;">
+
+            <div class="form-group">
+                <label style="font-weight:bold;font-size:14px;">📝 同义词 / 别名（病名俗称、英文缩写等，支持通检）</label>
+                <div style="display:flex;gap:8px;margin-bottom:8px;flex-wrap:wrap;">
+                    {% set alias_list = entry.aliases.all() %}
+                    {% if alias_list %}
+                        {% for a in alias_list %}
+                        <span style="background:#e3f2fd;color:#1565c0;padding:3px 10px;border-radius:12px;font-size:12px;display:inline-flex;align-items:center;gap:6px;">
+                            {{ a.alias_name }}
+                            <button type="button" onclick="shanChubieming('{{ url_for('ming_zu_shanchu', aid=a.id) }}')"
+                                    style="background:none;border:none;color:#f44336;cursor:pointer;font-size:14px;padding:0;" title="删除">×</button>
+                        </span>
+                        {% endfor %}
+                    {% else %}
+                        <span style="color:#999;font-size:12px;">暂无别名，搜索"糖尿病""T2DM"这类俗称会命不中，建议加上</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;">
+                    <input type="text" id="bieming-shuru" class="form-control" style="max-width:220px;" placeholder="如：T2DM、二型糖尿病">
+                    <button type="button" class="btn btn-default btn-sm"
+                            onclick="tianjiabieming('{{ url_for('ming_zu_tianjia', eid=entry.id) }}')">+ 添加别名</button>
+                </div>
+            </div>
+
+            <hr style="margin:24px 0;border:none;border-top:1px dashed #ddd;">
+
+            <div class="form-group">
+                <label style="font-weight:bold;font-size:14px;">🕸 关联关系 / 鉴别诊断（手动建立知识条目间的互联）</label>
+                <div style="margin-bottom:10px;">
+                    {% set out_links = entry.out_links.all() %}
+                    {% set in_links = entry.in_links.all() %}
+                    {% if out_links or in_links %}
+                    <table style="width:100%;font-size:12px;border-collapse:collapse;">
+                        <thead><tr style="background:#f5f5f5;">
+                            <th style="padding:6px 10px;text-align:left;border:1px solid #eee;">方向</th>
+                            <th style="padding:6px 10px;text-align:left;border:1px solid #eee;">关联条目</th>
+                            <th style="padding:6px 10px;text-align:left;border:1px solid #eee;">关系</th>
+                            <th style="padding:6px 10px;text-align:left;border:1px solid #eee;">关系度</th>
+                            <th style="padding:6px 10px;text-align:left;border:1px solid #eee;">操作</th>
+                        </tr></thead>
+                        <tbody>
+                            {% for lk in out_links %}
+                            <tr>
+                                <td style="padding:6px 10px;border:1px solid #eee;">{{ entry.title[:8] }} →</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">{{ lk.target.title[:20] if lk.target else '已删除' }}</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">{{ lk.link_type }}</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">
+                                    <span style="color:{% if lk.is_explicit %}#ff9800{% else %}#888{% endif %};">
+                                        {{ "%.2f"|format(lk.strength) }}
+                                        {% if lk.is_explicit %}✋{% endif %}
+                                    </span>
+                                </td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">
+                                    <button type="button" style="background:none;border:none;color:#f44336;cursor:pointer;"
+                                            onclick="shanchuguanlian('{{ url_for('guan_lian_shanchu', lid=lk.id) }}')">删除</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                            {% for lk in in_links %}
+                            <tr>
+                                <td style="padding:6px 10px;border:1px solid #eee;">← {{ lk.source.title[:8] if lk.source else '已删除' }}</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">本条目</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">{{ lk.link_type }}</td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">
+                                    <span style="color:{% if lk.is_explicit %}#ff9800{% else %}#888{% endif %};">
+                                        {{ "%.2f"|format(lk.strength) }}
+                                        {% if lk.is_explicit %}✋{% endif %}
+                                    </span>
+                                </td>
+                                <td style="padding:6px 10px;border:1px solid #eee;">
+                                    <button type="button" style="background:none;border:none;color:#f44336;cursor:pointer;"
+                                            onclick="shanchuguanlian('{{ url_for('guan_lian_shanchu', lid=lk.id) }}')">删除</button>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                    {% else %}
+                    <span style="color:#999;font-size:12px;">暂无关联关系。可以在下方手动添加，或回到知识列表点右上角"构建知识图谱"批量生成。</span>
+                    {% endif %}
+                </div>
+                <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                    <input type="text" id="guanlian-mubiao" class="form-control" style="max-width:200px;" placeholder="目标知识标题关键词">
+                    <select id="guanlian-leixing" class="form-control" style="max-width:130px;">
+                        <option value="鉴别诊断">鉴别诊断</option>
+                        <option value="并发症">并发症</option>
+                        <option value="诱因">诱因</option>
+                        <option value="上游疾病">上游疾病</option>
+                        <option value="治疗药品">治疗药品</option>
+                        <option value="辅助检查">辅助检查</option>
+                        <option value="临床表现">临床表现</option>
+                        <option value="关联">关联</option>
+                    </select>
+                    <input type="number" id="guanlian-qiangdu" class="form-control" style="max-width:90px;" placeholder="强度(0.01-1)" value="0.9" step="0.01" min="0.01" max="1.0">
+                    <button type="button" class="btn btn-default btn-sm"
+                            onclick="jianliguanlian('{{ url_for('guan_lian_tianjia', eid=entry.id) }}')">+ 建立关联</button>
+                </div>
+                <div style="font-size:11px;color:#888;margin-top:6px;">⚠ 关系度 0.01 - 1.00，数值越大表示关系越紧密；手动设置的关联关系度建议 0.7-0.95</div>
+            </div>
+            {% endif %}
+
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">保存草稿</button>
-                <a href="{{ url_for('knowledge_list') }}" class="btn btn-default">取消</a>
+                <a href="{{ url_for(hui) }}" class="btn btn-default">取消</a>
             </div>
         </form>
     </div>
 </div>
+
+<script>
+var dangqianLai = {{ request.args.get('lai', '')|tojson }};
+function dongtaiPost(dizhi, ziduan) {
+    var csrf = document.querySelector('#zhushi-biaodan input[name="csrf_token"]');
+    var f = document.createElement('form');
+    f.method = 'POST';
+    f.action = dizhi;
+    function jiaHidden(ming, zhi) {
+        var i = document.createElement('input');
+        i.type = 'hidden';
+        i.name = ming;
+        i.value = zhi;
+        f.appendChild(i);
+    }
+    jiaHidden('csrf_token', csrf ? csrf.value : '');
+    jiaHidden('lai', dangqianLai);
+    for (var k in ziduan) { jiaHidden(k, ziduan[k]); }
+    document.body.appendChild(f);
+    f.submit();
+}
+function shanChubieming(dizhi) {
+    if (!confirm('确认删除该别名？')) return;
+    dongtaiPost(dizhi, {});
+}
+function tianjiabieming(dizhi) {
+    var ming = document.getElementById('bieming-shuru').value.trim();
+    if (!ming) { alert('请输入别名'); return; }
+    dongtaiPost(dizhi, {alias_name: ming});
+}
+function shanchuguanlian(dizhi) {
+    if (!confirm('确认删除该关联关系？')) return;
+    dongtaiPost(dizhi, {});
+}
+function jianliguanlian(dizhi) {
+    var mb = document.getElementById('guanlian-mubiao').value.trim();
+    if (!mb) { alert('请输入目标知识标题关键词'); return; }
+    var qd = document.getElementById('guanlian-qiangdu').value;
+    dongtaiPost(dizhi, {
+        target_title: mb,
+        link_type: document.getElementById('guanlian-leixing').value,
+        strength: qd
+    });
+}
+</script>
+
+{% include "knowledge/_wenjian_jiao.html" %}
 {% endblock %}

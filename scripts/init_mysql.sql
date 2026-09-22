@@ -104,9 +104,11 @@ CREATE TABLE `model_config` (
     `name` VARCHAR(80) NOT NULL COMMENT '配置名称',
     `api_url` VARCHAR(500) NOT NULL COMMENT '接口地址',
     `api_key` VARCHAR(300) DEFAULT '' COMMENT '密钥',
-    `model_name` VARCHAR(100) NOT NULL COMMENT '模型标识',
+    `model_name` VARCHAR(100) NOT NULL COMMENT '模型名称',
     `temperature` FLOAT DEFAULT 0.3 COMMENT '生成温度',
     `max_tokens` INT DEFAULT 2048 COMMENT '最大返回token',
+    `si_kao_mo_shi` TINYINT(1) DEFAULT 0 COMMENT '是否开启思考模式',
+    `ti_shi_ci` TEXT COMMENT '生成提示词模板，{title}替换为知识名称，留空用系统内置模板',
     `is_active` TINYINT(1) DEFAULT 0 COMMENT '当前是否启用',
     `created_at` DATETIME DEFAULT CURRENT_TIMESTAMP COMMENT '创建时间',
     INDEX `idx_is_active` (`is_active`)
@@ -149,7 +151,7 @@ INSERT INTO `department` (`name`, `code`, `parent_id`, `sort_order`, `remark`) V
 ('药剂科', 'PHAR', NULL, 5, '药房科室');
 
 INSERT INTO `user` (`username`, `real_name`, `password_hash`, `email`, `phone`, `department_id`, `role_id`, `status`) VALUES
-('admin', '系统管理员', '296dde362a36f219b2fea309ef0c5ab2f77335fd3d60d41ca92e5575ca396792', 'admin@example.com', '13800138000', 1, 1, 'active');
+('admin', '系统管理员', '$2b$12$xbvpNHX7ggfF.4DumcABGO8hZNeN0fwSwPaOgYlW8UbvCvTxZdCqm', 'admin@example.com', '13800138000', 1, 1, 'active');
 
 INSERT INTO `category` (`name`, `code`, `parent_id`, `level`, `sort_order`, `description`) VALUES
 ('疾病', 'DISEASE', NULL, 1, 1, '疾病相关知识'),

@@ -17,7 +17,7 @@
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary btn-sm">查询</button>
-            <a href="{{ url_for('log_list') }}" class="btn btn-default btn-sm">重置</a>
+            <a href="{{ url_for('rizhi_liebiao') }}" class="btn btn-default btn-sm">重置</a>
         </form>
 
         <table class="data-table">
@@ -37,7 +37,7 @@
                 {% for log in logs %}
                 <tr>
                     <td>{{ log.id }}</td>
-                    <td>{{ log.created_at|fmt_date }}</td>
+                    <td>{{ log.created_at|shijian_ge_shi }}</td>
                     <td>{{ log.username }}</td>
                     <td>{{ log.module }}</td>
                     <td><span class="badge badge-manual">{{ log.action }}</span></td>
@@ -54,17 +54,17 @@
         {% if pagination.pages > 1 %}
         <div class="pagination">
             {% if pagination.has_prev %}
-                <a href="{{ url_for('log_list', page=pagination.prev_num, keyword=keyword, module=module) }}">上一页</a>
+                <a href="{{ url_for('rizhi_liebiao', page=pagination.prev_num, keyword=keyword, module=module) }}">上一页</a>
             {% endif %}
             {% for p in range(1, pagination.pages + 1) %}
                 {% if p == pagination.page %}
                     <span class="current">{{ p }}</span>
                 {% else %}
-                    <a href="{{ url_for('log_list', page=p, keyword=keyword, module=module) }}">{{ p }}</a>
+                    <a href="{{ url_for('rizhi_liebiao', page=p, keyword=keyword, module=module) }}">{{ p }}</a>
                 {% endif %}
             {% endfor %}
             {% if pagination.has_next %}
-                <a href="{{ url_for('log_list', page=pagination.next_num, keyword=keyword, module=module) }}">下一页</a>
+                <a href="{{ url_for('rizhi_liebiao', page=pagination.next_num, keyword=keyword, module=module) }}">下一页</a>
             {% endif %}
         </div>
         {% endif %}

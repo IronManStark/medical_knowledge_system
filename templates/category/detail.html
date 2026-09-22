@@ -6,19 +6,54 @@
 <div class="card">
     <div class="card-header">
         <h3>知识详情</h3>
-        <a href="{{ url_for('search') }}" class="btn btn-default btn-sm">← 返回</a>
+        {% if request.args.get('lai') == 'liebiao' %}
+        <a href="{{ url_for('zhishi_liebiao') }}" class="btn btn-default btn-sm">← 返回知识列表</a>
+        {% elif request.args.get('lai') == 'wode' %}
+        <a href="{{ url_for('wo_de_zhishi') }}" class="btn btn-default btn-sm">← 返回知识录入</a>
+        {% elif request.args.get('lai') == 'shengcheng' %}
+        <a href="{{ url_for('wo_de_shengcheng') }}" class="btn btn-default btn-sm">← 返回知识生成</a>
+        {% elif request.args.get('lai') == 'shenhe' %}
+        <a href="{{ url_for('shenhe_liebiao') }}" class="btn btn-default btn-sm">← 返回知识审核</a>
+        {% elif request.args.get('lai') == 'liulan' %}
+        <a href="{{ url_for('fenlei_liulan', cid=request.args.get('cid', 0), page=request.args.get('bp', 1)) }}" class="btn btn-default btn-sm">← 返回浏览列表</a>
+        {% elif request.args.get('lai') == 'tupu' %}
+        <a href="{{ url_for('zhishi_tupu') }}" class="btn btn-default btn-sm">← 返回图谱查询</a>
+        {% else %}
+        <a href="{{ url_for('jiansuo') }}" class="btn btn-default btn-sm">← 返回</a>
+        {% endif %}
     </div>
     <div class="card-body entry-detail">
         <h2>{{ entry.title }}</h2>
         <div class="meta">
             分类：{{ entry.category.name if entry.category else '未分类' }} |
+            {% if entry.icd_code %}
+                <span style="font-family:monospace;background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:4px;">ICD: {{ entry.icd_code }}</span> |
+            {% endif %}
+            {% if entry.evidence_level %}
+                {% if entry.evidence_level == '指南' %}<span style="background:#4caf50;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">📘 指南</span>
+                {% elif entry.evidence_level == '期刊' %}<span style="background:#2196f3;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">📗 期刊</span>
+                {% elif entry.evidence_level == '教科书' %}<span style="background:#9c27b0;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">📕 教科书</span>
+                {% elif entry.evidence_level == '审核通过' %}<span style="background:#ff9800;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">✅ 审核通过</span>
+                {% elif entry.evidence_level == 'AI待核' %}<span style="background:#78909c;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">🤖 AI待核</span>
+                {% else %}<span style="background:#ccc;color:#fff;padding:2px 8px;border-radius:4px;font-size:12px;">{{ entry.evidence_level }}</span>{% endif %} |
+            {% endif %}
             来源：
-            {% if entry.source == 'manual' %}手工录入{% else %}系统生成{% endif %} |
+            {% if entry.source == 'manual' %}手工录入{% else %}AI+人工{% endif %} |
             版本：v{{ entry.version }} |
             创建人：{{ entry.author.real_name if entry.author else '—' }} |
-            更新：{{ entry.updated_at|fmt_date }}
-            {% if entry.reviewed_at %} | 审核：{{ entry.reviewer.real_name if entry.reviewer else '—' }} {{ entry.reviewed_at|fmt_date }}{% endif %}
+            更新：{{ entry.updated_at|shijian_ge_shi }}
+            {% if entry.reviewed_at %} | 审核：{{ entry.reviewer.real_name if entry.reviewer else '—' }} {{ entry.reviewed_at|shijian_ge_shi }}{% endif %}
         </div>
+
+        {% set alias_list = entry.aliases.all() %}
+        {% if alias_list %}
+        <div style="margin:12px 0;">
+            <span style="font-size:12px;color:#888;margin-right:4px;">同义词/别名：</span>
+            {% for a in alias_list %}
+                <span style="background:#fce4ec;color:#ad1457;padding:2px 8px;border-radius:10px;font-size:12px;margin-right:4px;">{{ a.alias_name }}</span>
+            {% endfor %}
+        </div>
+        {% endif %}
 
         {% if entry.tags %}
         <div style="margin-bottom:16px;">
@@ -76,6 +111,92 @@
             <p>{{ entry.references }}</p>
         </div>
         {% endif %}
+
+        {% set wj_list = entry.files.all() %}
+        {% if wj_list %}
+        <div class="related-files">
+            <h4>相关文件</h4>
+            <div class="related-file-grid">
+                {% for wj in wj_list %}
+                <div class="related-file-card {% if wj.shi_tupian() %}img-card{% endif %}"
+                     {% if wj.shi_tupian() %}
+                     onmouseenter="xianShiDaTu('{{ url_for('wenjian_yulan', fid=wj.id) }}', this)"
+                     onmouseleave="yinCangDaTu()"
+                     onclick="window.open('{{ url_for('wenjian_yulan', fid=wj.id) }}', '_blank')"
+                     {% endif %}>
+                    {% if wj.shi_tupian() %}
+                    <img class="thumb" src="{{ url_for('wenjian_yulan', fid=wj.id) }}" alt="{{ wj.original_name }}" loading="lazy">
+                    <div class="file-icon">🖼</div>
+                    {% elif wj.shi_pdf() %}
+                    <div class="file-icon">📕</div>
+                    {% elif wj.shi_word() %}
+                    <div class="file-icon">📝</div>
+                    {% else %}
+                    <div class="file-icon">📄</div>
+                    {% endif %}
+                    <div class="file-name" title="{{ wj.original_name }}">{{ wj.original_name }}</div>
+                    <div class="file-actions">
+                        <a href="{{ url_for('wenjian_yulan', fid=wj.id) }}" target="_blank">预览</a>
+                        <a href="{{ url_for('wenjian_xiazai', fid=wj.id) }}" target="_blank">下载</a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% set all_links = entry.out_links.all() + entry.in_links.all() %}
+        {% if all_links %}
+        <div class="entry-section" style="margin-top:24px;">
+            <h4>🕸 相关知识（{{ all_links|length }} 条关联）</h4>
+            <div style="display:grid;grid-template-columns:repeat(auto-fill, minmax(260px, 1fr));gap:10px;margin-top:10px;">
+                {% for lk in all_links %}
+                {% set (other, direction) = (lk.target, '→') if lk.source_entry_id == entry.id else (lk.source, '←') %}
+                {% if other %}
+                <a href="{{ url_for('tiaomu_xiangqing', eid=other.id) }}?lai=jiansuo" style="text-decoration:none;color:inherit;">
+                <div style="border:1px solid #e0e0e0;border-radius:6px;padding:10px 14px;background:#fafafa;transition:all .2s;"
+                     onmouseover="this.style.borderColor='#26a69a';this.style.boxShadow='0 2px 8px rgba(38,166,154,.15)'"
+                     onmouseout="this.style.borderColor='#e0e0e0';this.style.boxShadow='none'">
+                    <div style="font-weight:600;color:#26a69a;font-size:14px;margin-bottom:4px;">
+                        {{ direction }} {{ other.title }}
+                    </div>
+                    <div style="font-size:11px;color:#888;">
+                        <span style="background:#e3f2fd;color:#1565c0;padding:1px 6px;border-radius:3px;margin-right:6px;">{{ lk.link_type }}</span>
+                        <span style="color:#ff9800;">关系度 {{ "%.2f"|format(lk.strength) }}</span>
+                        {% if lk.is_explicit %} <span style="color:#f57c00;">✋人工</span>{% endif %}
+                    </div>
+                </div>
+                </a>
+                {% endif %}
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        {% set graph_count = entry.out_links.count() + entry.in_links.count() %}
+        {% if graph_count > 0 %}
+        <div style="margin-top:16px;text-align:center;">
+            <a href="{{ url_for('zhishi_tupu') }}?q={{ entry.title }}" class="btn btn-default btn-sm" target="_blank">🕸 在图谱查询中查看完整关系网</a>
+        </div>
+        {% endif %}
     </div>
 </div>
+
+<div class="img-hover-preview" id="xiangqing-datu" style="display:none;">
+    <img id="xiangqing-datu-tu" src="" alt="预览">
+</div>
+<script>
+function xianShiDaTu(url, el) {
+    var fu = document.getElementById('xiangqing-datu');
+    var tu = document.getElementById('xiangqing-datu-tu');
+    tu.src = url;
+    var rect = el.getBoundingClientRect();
+    fu.style.left = (rect.right + 12) + 'px';
+    fu.style.top = rect.top + 'px';
+    fu.style.display = 'block';
+}
+function yinCangDaTu() {
+    document.getElementById('xiangqing-datu').style.display = 'none';
+}
+</script>
 {% endblock %}

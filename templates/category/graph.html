@@ -1,0 +1,365 @@
+{% extends "layout.html" %}
+{% block title %}图谱查询 - 医学知识库系统{% endblock %}
+{% block page_title %}图谱查询{% endblock %}
+
+{% block content %}
+<style>
+#mks-graph {
+    background: #fff; border: 1px solid #eee; border-radius: 8px;
+}
+a.gnode {
+    position: absolute; pointer-events: auto; cursor: pointer;
+    border-radius: 50%;
+    background: transparent;
+    border: 2px solid transparent;
+    transition: border-color 0.15s, box-shadow 0.15s;
+}
+a.gnode:hover {
+    border-color: #1565c0;
+    box-shadow: 0 0 12px rgba(21,101,192,0.55);
+}
+</style>
+<script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+
+<div class="card">
+    <div class="card-header">
+        <h3>图谱查询</h3>
+    </div>
+    <div class="card-body">
+        <div style="display:flex;gap:8px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+            <label style="font-size:13px;color:#666;white-space:nowrap;">选择疾病：</label>
+            <div style="position:relative;max-width:300px;flex:1;">
+                <input type="text" id="graph-center-input" class="form-control"
+                       list="graph-center-datalist"
+                       placeholder="输入疾病名称检索…"
+                       style="padding-right:26px;"
+                       oninput="document.getElementById('graph-qingchu').style.display=this.value?'block':'none';"
+                       onkeydown="if(event.key==='Enter'){event.preventDefault();tupu_sousuo();}">
+                <span id="graph-qingchu" onclick="qingchu_srk()" title="清空"
+                      style="position:absolute;right:9px;top:50%;transform:translateY(-50%);cursor:pointer;color:#aaa;font-size:13px;display:none;user-select:none;">✕</span>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="tupu_sousuo()">搜索</button>
+            <input type="hidden" id="graph-center-hidden">
+            <datalist id="graph-center-datalist">
+                {% for e in entries %}
+                <option value="{{ e.title }}" data-id="{{ e.id }}">
+                {% endfor %}
+            </datalist>
+            <span id="graph-center-ping" style="font-size:11px;color:#999;"></span>
+        </div>
+
+        <div style="display:flex;gap:16px;">
+            <div style="flex:1;min-height:640px;min-width:0;position:relative;">
+                <div id="mks-graph" style="width:100%;height:640px;"></div>
+                <div id="graph-hot" style="position:absolute;left:0;top:0;width:100%;height:100%;pointer-events:none;z-index:10;"></div>
+            </div>
+
+            <div style="width:240px;flex-shrink:0;">
+                <div style="border:1px solid #eee;border-radius:8px;padding:12px;margin-bottom:12px;background:#fafafa;">
+                    <h4 style="margin:0 0 8px;font-size:12px;color:#333;">筛选关系类型</h4>
+                    <div id="filter-links" style="display:flex;flex-wrap:wrap;gap:4px;"></div>
+                </div>
+                <div style="border:1px solid #eee;border-radius:8px;padding:12px;margin-bottom:12px;background:#fafafa;">
+                    <h4 style="margin:0 0 8px;font-size:12px;color:#333;">图例</h4>
+                    <div id="legend-box"></div>
+                </div>
+                <div style="font-size:11px;color:#999;padding:4px 8px;line-height:1.6;">
+                    输入疾病名 + 搜索/回车 → 中心发散<br>
+                    箭头颜色 = 知识分类色（同图例）<br>
+                    关联越强 → 箭头越粗越近<br>
+                    点节点 → 跳转知识详情<br>
+                    滚轮缩放 / 拖拽平移
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+var tu, yuan_shu_ju = null, suo_xuan_link = null;
+
+document.addEventListener('DOMContentLoaded', function () {
+    tu = echarts.init(document.getElementById('mks-graph'));
+    window.addEventListener('resize', function () { tu.resize(); tongbu_requ(); });
+    tu.on('georoam', function () { tongbu_requ(); });
+    tu.on('click', function (can) {
+        if (can.dataType === 'node' && can.data.url) {
+            window.location.href = can.data.url;
+        }
+    });
+});
+
+function qingchu_srk() {
+    document.getElementById('graph-center-input').value = '';
+    document.getElementById('graph-center-hidden').value = '';
+    document.getElementById('graph-center-ping').textContent = '';
+    document.getElementById('graph-qingchu').style.display = 'none';
+    document.getElementById('graph-center-input').focus();
+}
+
+function tupu_sousuo() {
+    var input = document.getElementById('graph-center-input');
+    var ping = document.getElementById('graph-center-ping');
+    var val = input.value.trim();
+    if (!val) {
+        ping.textContent = '请输入疾病名称';
+        ping.style.color = '#f44336';
+        return;
+    }
+
+    var dl = document.getElementById('graph-center-datalist');
+    var opts = dl.querySelectorAll('option');
+    var id = 0;
+    for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === val) {
+            id = parseInt(opts[i].getAttribute('data-id') || '0', 10);
+            break;
+        }
+    }
+
+    if (!id) {
+        for (var j = 0; j < opts.length; j++) {
+            if (opts[j].value.indexOf(val) >= 0) {
+                id = parseInt(opts[j].getAttribute('data-id') || '0', 10);
+                input.value = opts[j].value;
+                break;
+            }
+        }
+    }
+
+    if (!id) {
+        ping.textContent = '未匹配到疾病';
+        ping.style.color = '#f44336';
+        return;
+    }
+
+    document.getElementById('graph-center-hidden').value = id;
+    ping.textContent = '已载入: ' + input.value;
+    ping.style.color = '#4caf50';
+    document.getElementById('graph-qingchu').style.display = 'block';
+    suo_xuan_link = null;
+    chuli_shuju('/api/graph/data?center=' + id);
+}
+
+function chuli_shuju(url) {
+    fetch(url)
+        .then(function (r) {
+            if (!r.ok) throw new Error('HTTP ' + r.status);
+            return r.json();
+        })
+        .then(function (ju) {
+            yuan_shu_ju = ju;
+            gou_jian_but();
+            gou_jian_tuxing(ju);
+        })
+        .catch(function (err) {
+            console.error('加载图谱失败:', err);
+        });
+}
+
+function gou_jian_but() {
+    if (!yuan_shu_ju) return;
+
+    var link_div = document.getElementById('filter-links');
+    link_div.innerHTML = '';
+    var xing_set = {};
+    yuan_shu_ju.links.forEach(function (lk) {
+        var x = (lk.label && lk.label.formatter) || '关联';
+        xing_set[x] = (xing_set[x] || 0) + 1;
+    });
+    var quan = document.createElement('button');
+    quan.className = 'btn btn-default btn-sm'; quan.style.fontSize = '11px';
+    quan.textContent = '全部';
+    quan.onclick = function () { suo_xuan_link = null; gou_jian_tuxing(yuan_shu_ju); };
+    link_div.appendChild(quan);
+    Object.keys(xing_set).sort().forEach(function (x) {
+        var b = document.createElement('button');
+        b.className = 'btn btn-default btn-sm'; b.style.fontSize = '11px';
+        b.textContent = x + '(' + xing_set[x] + ')';
+        b.onclick = function () {
+            suo_xuan_link = (suo_xuan_link === x) ? null : x;
+            gou_jian_tuxing(yuan_shu_ju);
+        };
+        link_div.appendChild(b);
+    });
+
+    var legend_div = document.getElementById('legend-box');
+    legend_div.innerHTML = '';
+    if (yuan_shu_ju.categories) {
+        yuan_shu_ju.categories.forEach(function (c) {
+            var lg = document.createElement('div');
+            lg.style.cssText = 'display:flex;align-items:center;gap:6px;font-size:11px;margin:3px 0;color:#555;';
+            lg.innerHTML = '<span style="display:inline-block;width:12px;height:12px;border-radius:50%;background:' + c.itemStyle.color + ';border:1px solid rgba(0,0,0,0.1);"></span>' + c.name;
+            legend_div.appendChild(lg);
+        });
+    }
+}
+
+function gou_jian_tuxing(ju) {
+    if (!ju || !ju.nodes || ju.nodes.length === 0) {
+        tu.setOption({ series: [{ type: 'graph', data: [], links: [] }] }, true);
+        document.getElementById('graph-hot').innerHTML = '';
+        return;
+    }
+
+    var nodes = ju.nodes.map(function (n) {
+        var copy = {};
+        for (var k in n) copy[k] = n[k];
+        return copy;
+    });
+    var links = ju.links.map(function (l) {
+        var copy = {};
+        for (var k in l) copy[k] = l[k];
+        return copy;
+    });
+
+    if (suo_xuan_link) {
+        links = links.filter(function (l) { return (l.label && l.label.formatter) === suo_xuan_link; });
+        var set_node = {};
+        links.forEach(function (l) { set_node[l.source] = 1; set_node[l.target] = 1; });
+        nodes = nodes.filter(function (n) { return set_node[n.id]; });
+    }
+
+    var zhongxin_id = ju.center || 0;
+
+    var xb_map = {};
+    nodes.forEach(function (n, i) { xb_map[n.id] = i; });
+
+    var lin_qiang = {};
+    links.forEach(function (lk) {
+        var wai = (lk.source == zhongxin_id) ? lk.target : (lk.target == zhongxin_id) ? lk.source : null;
+        if (wai === null) return;
+        var q = lk.value || 0.3;
+        if (!lin_qiang[wai] || q > lin_qiang[wai]) lin_qiang[wai] = q;
+    });
+
+    var fei_zhong = nodes.filter(function (n) { return n.id != zhongxin_id; });
+    fei_zhong.sort(function (a, b) {
+        return (lin_qiang[b.id] || 0) - (lin_qiang[a.id] || 0);
+    });
+    fei_zhong.forEach(function (n, i) {
+        var q = lin_qiang[n.id] || 0.3;
+        var r = 180 + (1 - q) * 150;
+        var jd = (i / Math.max(fei_zhong.length, 1)) * Math.PI * 2 - Math.PI / 2;
+        n.x = r * Math.cos(jd);
+        n.y = r * Math.sin(jd);
+    });
+    nodes.forEach(function (n) {
+        if (n.id == zhongxin_id) { n.x = 0; n.y = 0; n.is_center = true; }
+    });
+
+    var _links = [];
+    links.forEach(function (lk) {
+        if (!(lk.source in xb_map) || !(lk.target in xb_map)) return;
+        var src_is_center = (lk.source == zhongxin_id);
+        var sha = src_is_center ? lk.source : lk.target;
+        var mu = src_is_center ? lk.target : lk.source;
+        var q = lk.value || 0.3;
+        var mu_node = nodes[xb_map[mu]];
+        var yan = (mu_node && mu_node.itemStyle && mu_node.itemStyle.color) ? mu_node.itemStyle.color : '#90a4ae';
+        _links.push({
+            source: xb_map[sha],
+            target: xb_map[mu],
+            value: q,
+            _xing: (lk.label && lk.label.formatter) || '关联',
+            lineStyle: {
+                width: 1.4 + q * 1.6,
+                color: yan,
+                opacity: 0.8,
+            },
+        });
+    });
+
+    tu.setOption({
+        tooltip: {
+            confine: true,
+            formatter: function (p) {
+                if (p.dataType === 'edge') {
+                    return '<b>' + ((p.data._xing) || '关联') + '</b><br>关系强度：' + p.data.value;
+                }
+                var d = p.data;
+                return '<b style="color:#1565c0;font-size:14px;">' + d.name + '</b><br>分类：' + d.category;
+            }
+        },
+        legend: { show: false },
+        animation: false,
+        series: [{
+            type: 'graph',
+            layout: 'none',
+            roam: true,
+            draggable: true,
+            categories: ju.categories || [],
+            data: nodes,
+            links: _links,
+
+            label: {
+                show: true,
+                position: 'bottom',
+                fontSize: 12,
+                color: '#333',
+                distance: 6,
+                formatter: function (p) {
+                    if (p.data.is_center) {
+                        return '{c|' + (p.data.name || '').slice(0, 6) + '}';
+                    }
+                    return (p.data.name || '').slice(0, 8);
+                },
+                rich: {
+                    c: {
+                        color: '#fff', fontSize: 14, fontWeight: 'bold',
+                        backgroundColor: '#1565c0', padding: [3, 8], borderRadius: 4,
+                    }
+                },
+            },
+
+            edgeSymbol: ['none', 'arrow'],
+            edgeSymbolSize: 10,
+            edgeLabel: { show: false },
+
+            emphasis: {
+                focus: 'adjacency',
+                scale: 1.12,
+                label: { fontWeight: 'bold' },
+                lineStyle: { width: 3.2 },
+            },
+
+            cursor: 'pointer',
+        }],
+    }, true);
+
+    clearInterval(window.__req_dingshi);
+    setTimeout(tongbu_requ, 60);
+    setTimeout(tongbu_requ, 300);
+    var ci = 0;
+    window.__req_dingshi = setInterval(function () {
+        tongbu_requ();
+        if (++ci > 8) clearInterval(window.__req_dingshi);
+    }, 250);
+}
+
+function tongbu_requ() {
+    if (!tu) return;
+    try {
+        var opt = tu.getOption();
+        if (!opt || !opt.series || !opt.series[0] || !opt.series[0].data) return;
+        var nodes = opt.series[0].data || [];
+        var el = document.getElementById('graph-hot');
+        var html = '';
+        for (var i = 0; i < nodes.length; i++) {
+            var n = nodes[i];
+            if (!isFinite(n.x) || !isFinite(n.y)) continue;
+            var xy = tu.convertToPixel({seriesIndex: 0}, [n.x, n.y]);
+            if (!xy || !isFinite(xy[0]) || !isFinite(xy[1])) continue;
+            var diameter = Math.round(n.symbolSize || 36);
+            var half = diameter / 2;
+            var l = Math.round(xy[0] - half);
+            var t = Math.round(xy[1] - half);
+            html += '<a class="gnode" href="' + (n.url || '#') + '" style="'
+                + 'left:' + l + 'px;top:' + t + 'px;width:' + diameter + 'px;height:' + diameter + 'px;"'
+                + ' title="' + (n.name || '') + '"></a>';
+        }
+        el.innerHTML = html;
+    } catch (e) {}
+}
+</script>
+{% endblock %}

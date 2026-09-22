@@ -5,72 +5,202 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}医学知识库系统{% endblock %}</title>
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <script>
+    (function () {
+        try {
+            if (localStorage.getItem('mks_celan_zhuangtai') === 'shou') {
+                document.documentElement.classList.add('celan-shou');
+            }
+        } catch (e) {}
+    })();
+    </script>
 </head>
 <body>
+{% set dangqian_zd = request.endpoint or '' %}
+{% set caidan_guize = [
+    ('home', ['zhuye']),
+    ('fenlei', ['fenlei_']),
+    ('luru', ['wo_de_zhishi', 'zhishi_luru']),
+    ('shengcheng', ['wo_de_shengcheng', 'zhishi_shengcheng']),
+    ('shenhe', ['shenhe_']),
+    ('liebiao', ['zhishi_liebiao', 'zhishi_shangxia', 'zhishi_shanchu', 'tupu_goujian_yemian']),
+    ('moxing', ['moxing_']),
+    ('jiansuo', ['jiansuo']),
+    ('tupu', ['zhishi_tupu', 'tupu_']),
+    ('yonghu', ['yonghu_']),
+    ('keshi', ['keshi_']),
+    ('juese', ['juese_', 'gen_quanxian_chayonghu', 'gen_juese_chayonghu']),
+    ('tongji', ['tongji_fenxi']),
+    ('rizhi', ['rizhi_liebiao']),
+] %}
+{% set huo_qu = namespace(huo='') %}
+{% for key, qianzhui in caidan_guize %}
+    {% for qz in qianzhui %}
+        {% if not huo_qu.huo and (dangqian_zd == qz or dangqian_zd.startswith(qz)) %}{% set huo_qu.huo = key %}{% endif %}
+    {% endfor %}
+{% endfor %}
+{% if dangqian_zd in ['tiaomu_xiangqing', 'zhishi_bianji'] %}
+    {% set lai_yingshe = {'liebiao': 'liebiao', 'wode': 'luru', 'shengcheng': 'shengcheng', 'shenhe': 'shenhe', 'liulan': 'fenlei', 'tupu': 'tupu'} %}
+    {% set lai_can = request.args.get('lai', '') %}
+    {% if lai_can in lai_yingshe %}
+        {% set huo_qu.huo = lai_yingshe[lai_can] %}
+    {% elif dangqian_zd == 'tiaomu_xiangqing' %}
+        {% set huo_qu.huo = 'jiansuo' %}
+    {% elif request.referrer and '/knowledge/mine' in request.referrer %}
+        {% set huo_qu.huo = 'luru' %}
+    {% elif request.referrer and '/knowledge/generated' in request.referrer %}
+        {% set huo_qu.huo = 'shengcheng' %}
+    {% elif request.referrer and '/knowledge/review' in request.referrer %}
+        {% set huo_qu.huo = 'shenhe' %}
+    {% elif current_user and current_user.role and (current_user.role.code == 'admin' or current_user.role.shifou_youquan('knowledge_review')) %}
+        {% set huo_qu.huo = 'liebiao' %}
+    {% else %}
+        {% set huo_qu.huo = 'luru' %}
+    {% endif %}
+{% endif %}
 <div class="app-layout">
-    <!-- 侧边导航 -->
     <aside class="sidebar">
         <div class="sidebar-header">
             <div class="icon">医</div>
             <span>医学知识库</span>
+            <button type="button" class="celan-an" id="celan-an" onclick="qiehuan_celan()" title="收起侧栏">&lt;收起</button>
         </div>
+        {% set shi_admin = (current_user and current_user.role and current_user.role.code == 'admin') %}
+        {% set jian_home = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('home_view'))) %}
+        {% set jian_fenlei = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('category_manage'))) %}
+        {% set jian_moxing = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('model_config'))) %}
+        {% set jian_shengcheng = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('knowledge_generate'))) %}
+        {% set jian_luru = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('knowledge_create'))) %}
+        {% set jian_shenhe = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('knowledge_review'))) %}
+        {% set jian_liebiao = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('knowledge_edit'))) %}
+        {% set jian_jiansuo = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('search_view'))) %}
+        {% set jian_yonghu = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('user_manage'))) %}
+        {% set jian_keshi = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('dept_manage'))) %}
+        {% set jian_juese = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('role_manage'))) %}
+        {% set jian_tongji = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('stat_view'))) %}
+        {% set jian_rizhi = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('log_view'))) %}
+        {% set jian_tupu = (shi_admin or (current_user and current_user.role and current_user.role.shifou_youquan('graph_view'))) %}
+
+        {% if jian_home %}
         <nav class="nav-section">
             <div class="nav-section-title">概览</div>
-            <a href="{{ url_for('dashboard') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">▣</span> 系统首页
+            <a href="{{ url_for('zhuye') }}" class="nav-item{% if huo_qu.huo == 'home' %} active{% endif %}" data-tip="系统首页" onclick="navigate(event, this)">
+                <span class="nav-icon">▣</span><span class="nav-text">系统首页</span>
             </a>
         </nav>
+        {% endif %}
+
+        {% if jian_fenlei or jian_moxing or jian_shengcheng or jian_luru or jian_shenhe or jian_liebiao %}
         <nav class="nav-section">
             <div class="nav-section-title">知识管理</div>
-            <a href="{{ url_for('knowledge_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">▤</span> 知识条目
+            {% if jian_fenlei %}
+            <a href="{{ url_for('fenlei_zongshu') }}" class="nav-item{% if huo_qu.huo == 'fenlei' %} active{% endif %}" data-tip="知识分类" onclick="navigate(event, this)">
+                <span class="nav-icon">☙</span><span class="nav-text">知识分类</span>
             </a>
-            <a href="{{ url_for('knowledge_create') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">✎</span> 知识录入
+            {% endif %}
+            {% if jian_moxing %}
+            <a href="{{ url_for('moxing_liebiao') }}" class="nav-item{% if huo_qu.huo == 'moxing' %} active{% endif %}" data-tip="模型配置" onclick="navigate(event, this)">
+                <span class="nav-icon">⚙</span><span class="nav-text">模型配置</span>
             </a>
-            <a href="{{ url_for('knowledge_review_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">✓</span> 知识审核
+            {% endif %}
+            {% if jian_shengcheng %}
+            <a href="{{ url_for('wo_de_shengcheng') }}" class="nav-item{% if huo_qu.huo == 'shengcheng' %} active{% endif %}" data-tip="知识生成" onclick="navigate(event, this)">
+                <span class="nav-icon">⚡</span><span class="nav-text">知识生成</span>
             </a>
-            <a href="{{ url_for('knowledge_generate') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">⚡</span> 知识生成
+            {% endif %}
+            {% if jian_luru %}
+            <a href="{{ url_for('wo_de_zhishi') }}" class="nav-item{% if huo_qu.huo == 'luru' %} active{% endif %}" data-tip="知识录入" onclick="navigate(event, this)">
+                <span class="nav-icon">✎</span><span class="nav-text">知识录入</span>
             </a>
-            <a href="{{ url_for('model_config_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">⚙</span> 模型配置
+            {% endif %}
+            {% if jian_shenhe %}
+            <a href="{{ url_for('shenhe_liebiao') }}" class="nav-item{% if huo_qu.huo == 'shenhe' %} active{% endif %}" data-tip="知识审核" onclick="navigate(event, this)">
+                <span class="nav-icon">✓</span><span class="nav-text">知识审核</span>
             </a>
+            {% endif %}
+            {% if jian_liebiao %}
+            <a href="{{ url_for('zhishi_liebiao') }}" class="nav-item{% if huo_qu.huo == 'liebiao' %} active{% endif %}" data-tip="知识列表" onclick="navigate(event, this)">
+                <span class="nav-icon">▤</span><span class="nav-text">知识列表</span>
+            </a>
+            {% endif %}
         </nav>
+        {% endif %}
+
+        {% if jian_jiansuo or jian_tupu %}
         <nav class="nav-section">
             <div class="nav-section-title">分类查阅</div>
-            <a href="{{ url_for('category_tree') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">☙</span> 分类体系
+            {% if jian_jiansuo %}
+            <a href="{{ url_for('jiansuo') }}" class="nav-item{% if huo_qu.huo == 'jiansuo' %} active{% endif %}" data-tip="知识检索" onclick="navigate(event, this)">
+                <span class="nav-icon">🔍</span><span class="nav-text">知识检索</span>
             </a>
-            <a href="{{ url_for('search') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">🔍</span> 知识检索
+            {% endif %}
+            {% if jian_tupu %}
+            <a href="{{ url_for('zhishi_tupu') }}" class="nav-item{% if huo_qu.huo == 'tupu' %} active{% endif %}" data-tip="图谱查询" onclick="navigate(event, this)">
+                <span class="nav-icon">🕸</span><span class="nav-text">图谱查询</span>
             </a>
+            {% endif %}
         </nav>
+        {% endif %}
+
+        {% if jian_yonghu or jian_keshi or jian_juese %}
         <nav class="nav-section">
             <div class="nav-section-title">用户管理</div>
-            <a href="{{ url_for('user_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">👤</span> 人员维护
+            {% if jian_yonghu %}
+            <a href="{{ url_for('yonghu_liebiao') }}" class="nav-item{% if huo_qu.huo == 'yonghu' %} active{% endif %}" data-tip="人员维护" onclick="navigate(event, this)">
+                <span class="nav-icon">👤</span><span class="nav-text">人员维护</span>
             </a>
-            <a href="{{ url_for('dept_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">⌂</span> 科室维护
+            {% endif %}
+            {% if jian_keshi %}
+            <a href="{{ url_for('keshi_liebiao') }}" class="nav-item{% if huo_qu.huo == 'keshi' %} active{% endif %}" data-tip="科室维护" onclick="navigate(event, this)">
+                <span class="nav-icon">⌂</span><span class="nav-text">科室维护</span>
             </a>
-            <a href="{{ url_for('role_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">🔑</span> 权限维护
+            {% endif %}
+            {% if jian_juese %}
+            <a href="{{ url_for('juese_liebiao') }}" class="nav-item{% if huo_qu.huo == 'juese' %} active{% endif %}" data-tip="权限维护" onclick="navigate(event, this)">
+                <span class="nav-icon">🔑</span><span class="nav-text">权限维护</span>
             </a>
+            {% endif %}
         </nav>
+        {% endif %}
+
+        {% if jian_tongji or jian_rizhi %}
         <nav class="nav-section">
             <div class="nav-section-title">辅助功能</div>
-            <a href="{{ url_for('log_list') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">📋</span> 系统日志
+            {% if jian_tongji %}
+            <a href="{{ url_for('tongji_fenxi') }}" class="nav-item{% if huo_qu.huo == 'tongji' %} active{% endif %}" data-tip="统计分析" onclick="navigate(event, this)">
+                <span class="nav-icon">📊</span><span class="nav-text">统计分析</span>
             </a>
-            <a href="{{ url_for('statistics') }}" class="nav-item" onclick="navigate(event, this)">
-                <span class="nav-icon">📊</span> 统计分析
+            {% endif %}
+            {% if jian_rizhi %}
+            <a href="{{ url_for('rizhi_liebiao') }}" class="nav-item{% if huo_qu.huo == 'rizhi' %} active{% endif %}" data-tip="系统日志" onclick="navigate(event, this)">
+                <span class="nav-icon">📋</span><span class="nav-text">系统日志</span>
             </a>
+            {% endif %}
         </nav>
+        {% endif %}
     </aside>
+    <script>
+    (function () {
+        try {
+            var sb = document.querySelector('.sidebar');
+            if (sb) {
+                var saved = sessionStorage.getItem('sidebarScrollTop');
+                if (saved !== null) {
+                    sb.scrollTop = parseInt(saved, 10);
+                }
+                var active = sb.querySelector('.nav-item.active');
+                if (active) {
+                    var a = active.getBoundingClientRect();
+                    var b = sb.getBoundingClientRect();
+                    if (a.top < b.top + 4 || a.bottom > b.bottom - 4) {
+                        active.scrollIntoView({ block: 'nearest' });
+                    }
+                }
+            }
+        } catch (e) {}
+    })();
+    </script>
 
-    <!-- 主区域 -->
     <div class="main-area">
         <header class="topbar">
             <div class="topbar-title">{% block page_title %}系统首页{% endblock %}</div>
@@ -86,7 +216,7 @@
                     </div>
                     <div class="dropdown-menu">
                         <a href="#" class="dropdown-item" onclick="showChangePasswordModal()">修改密码</a>
-                        <a href="{{ url_for('logout') }}" class="dropdown-item">退出</a>
+                        <a href="{{ url_for('tuichu') }}" class="dropdown-item">退出</a>
                     </div>
                 </div>
             </div>
@@ -120,8 +250,8 @@
                     {% endif %}
                 {% endfor %}
             {% endwith %}
-            <form id="change-password-form" method="POST" action="{{ url_for('change_password') }}">
-                {{ change_password_form.csrf_token if change_password_form else '' }}
+            <form id="change-password-form" method="POST" action="{{ url_for('gaimima') }}">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                 <div class="form-group">
                     <label>原密码</label>
                     <input type="password" name="old_password" class="form-control" placeholder="请输入原密码" required>
@@ -144,6 +274,13 @@
 </div>
 
 <script>
+function qiehuan_celan() {
+    var shou = document.documentElement.classList.toggle('celan-shou');
+    var an = document.getElementById('celan-an');
+    if (an) { an.title = shou ? '展开侧栏' : '收起侧栏'; }
+    try { localStorage.setItem('mks_celan_zhuangtai', shou ? 'shou' : 'kai'); } catch (e) {}
+}
+
 function showChangePasswordModal() {
     document.getElementById('password-modal').style.display = 'flex';
 }
@@ -173,14 +310,6 @@ function navigate(e, el) {
     sessionStorage.setItem('sidebarScrollTop', sidebar.scrollTop);
     window.location.href = el.href;
 }
-
-document.addEventListener('DOMContentLoaded', function() {
-    var savedScrollTop = sessionStorage.getItem('sidebarScrollTop');
-    if (savedScrollTop !== null) {
-        var sidebar = document.querySelector('.sidebar');
-        sidebar.scrollTop = parseInt(savedScrollTop);
-    }
-});
 </script>
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 </body>

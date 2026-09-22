@@ -55,11 +55,11 @@
         </div>
         <div class="card-body">
             <div style="display: flex; flex-wrap: wrap; gap: 12px;">
-                <a href="{{ url_for('knowledge_create') }}" class="btn btn-primary">✎ 录入知识</a>
-                <a href="{{ url_for('knowledge_generate') }}" class="btn btn-success">⚡ 知识生成</a>
-                <a href="{{ url_for('search') }}" class="btn btn-info">🔍 检索知识</a>
-                <a href="{{ url_for('knowledge_review_list') }}" class="btn btn-warning">✓ 知识审核</a>
-                <a href="{{ url_for('statistics') }}" class="btn btn-default">📊 统计分析</a>
+                <a href="{{ url_for('zhishi_luru') }}" class="btn btn-primary">✎ 录入知识</a>
+                <a href="{{ url_for('zhishi_shengcheng') }}" class="btn btn-success">⚡ 知识生成</a>
+                <a href="{{ url_for('jiansuo') }}" class="btn btn-info">🔍 检索知识</a>
+                <a href="{{ url_for('shenhe_liebiao') }}" class="btn btn-warning">✓ 知识审核</a>
+                <a href="{{ url_for('tongji_fenxi') }}" class="btn btn-default">📊 统计分析</a>
             </div>
         </div>
     </div>
@@ -72,7 +72,7 @@
                 <tr><td style="width:40%; color:#888;">系统名称</td><td>医学知识库系统</td></tr>
                 <tr><td style="color:#888;">系统版本</td><td>V1.0</td></tr>
                 <tr><td style="color:#888;">运行框架</td><td>Python Flask</td></tr>
-                <tr><td style="color:#888;">数据库</td><td>SQLite</td></tr>
+                <tr><td style="color:#888;">数据库</td><td>{{ stats.db_type }}</td></tr>
                 <tr><td style="color:#888;">当前用户</td><td>{{ current_user.real_name }}</td></tr>
                 <tr><td style="color:#888;">所属角色</td><td>{{ current_user.role.name if current_user.role else '未分配' }}</td></tr>
             </table>

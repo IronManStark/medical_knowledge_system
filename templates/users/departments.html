@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>科室列表</h3>
-        <a href="{{ url_for('dept_create') }}" class="btn btn-primary btn-sm">+ 新增科室</a>
+        <a href="{{ url_for('keshi_xinzeng') }}" class="btn btn-primary btn-sm">+ 新增科室</a>
     </div>
     <div class="card-body">
         <table class="data-table">
@@ -24,20 +24,25 @@
             </thead>
             <tbody>
                 {% for d in departments %}
+                {% set renshu = d.users.count() %}
                 <tr>
                     <td>{{ d.id }}</td>
                     <td>{{ d.name }}</td>
                     <td>{{ d.code }}</td>
                     <td>{{ d.parent.name if d.parent else '—' }}</td>
                     <td>{{ d.sort_order }}</td>
-                    <td>{{ d.users.count() }}</td>
+                    <td>{{ renshu }}</td>
                     <td>{{ d.remark or '—' }}</td>
                     <td>
-                        <a href="{{ url_for('dept_edit', did=d.id) }}" class="btn btn-default btn-sm">编辑</a>
-                        <form method="POST" action="{{ url_for('dept_delete', did=d.id) }}" style="display:inline;">
+                        <a href="{{ url_for('keshi_bianji', did=d.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        {% if renshu > 0 %}
+                        <span class="btn btn-hui btn-sm" title="该科室下还有 {{ renshu }} 名人员，调离或删除人员后才能删除科室">删除</span>
+                        {% else %}
+                        <form method="POST" action="{{ url_for('keshi_shanchu', did=d.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}

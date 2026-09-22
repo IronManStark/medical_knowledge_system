@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>人员列表</h3>
-        <a href="{{ url_for('user_create') }}" class="btn btn-primary btn-sm">+ 新增人员</a>
+        <a href="{{ url_for('yonghu_xinzeng') }}" class="btn btn-primary btn-sm">+ 新增人员</a>
     </div>
     <div class="card-body">
         <form class="search-bar" method="GET" id="searchForm">
@@ -18,7 +18,7 @@
                 {% endfor %}
             </select>
             <button type="submit" class="btn btn-primary btn-sm">查询</button>
-            <a href="{{ url_for('user_list') }}" class="btn btn-default btn-sm">重置</a>
+            <a href="{{ url_for('yonghu_liebiao') }}" class="btn btn-default btn-sm">重置</a>
         </form>
 
         <table class="data-table">
@@ -47,16 +47,24 @@
                     <td>{{ u.email or '—' }}</td>
                     <td>{{ u.phone or '—' }}</td>
                     <td>
-                        {% if u.status == 'active' %}
+                        {% if u.shifou_suoding() %}
+                            <span class="badge badge-rejected">锁定中</span>
+                        {% elif u.status == 'active' %}
                             <span class="badge badge-active">正常</span>
                         {% else %}
                             <span class="badge badge-disabled">停用</span>
                         {% endif %}
                     </td>
-                    <td>{{ u.last_login|fmt_date if u.last_login else '—' }}</td>
+                    <td>{{ u.last_login|shijian_ge_shi if u.last_login else '—' }}</td>
                     <td>
-                        <a href="{{ url_for('user_edit', uid=u.id) }}" class="btn btn-default btn-sm">编辑</a>
-                        <form method="POST" action="{{ url_for('user_delete', uid=u.id) }}" style="display:inline;">
+                        <a href="{{ url_for('yonghu_bianji', uid=u.id) }}" class="btn btn-default btn-sm">编辑</a>
+                        {% if u.shifou_suoding() %}
+                        <form method="POST" action="{{ url_for('yonghu_jiesuo', uid=u.id) }}" style="display:inline;">
+                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                            <button type="submit" class="btn btn-warning btn-sm">解锁</button>
+                        </form>
+                        {% endif %}
+                        <form method="POST" action="{{ url_for('yonghu_shanchu', uid=u.id) }}" style="display:inline;">
                             <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
                             <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
                         </form>
@@ -72,17 +80,17 @@
         {% if pagination.pages > 1 %}
         <div class="pagination">
             {% if pagination.has_prev %}
-                <a href="{{ url_for('user_list', page=pagination.prev_num, keyword=keyword, dept=dept_id) }}">上一页</a>
+                <a href="{{ url_for('yonghu_liebiao', page=pagination.prev_num, keyword=keyword, dept=dept_id) }}">上一页</a>
             {% endif %}
             {% for p in range(1, pagination.pages + 1) %}
                 {% if p == pagination.page %}
                     <span class="current">{{ p }}</span>
                 {% else %}
-                    <a href="{{ url_for('user_list', page=p, keyword=keyword, dept=dept_id) }}">{{ p }}</a>
+                    <a href="{{ url_for('yonghu_liebiao', page=p, keyword=keyword, dept=dept_id) }}">{{ p }}</a>
                 {% endif %}
             {% endfor %}
             {% if pagination.has_next %}
-                <a href="{{ url_for('user_list', page=pagination.next_num, keyword=keyword, dept=dept_id) }}">下一页</a>
+                <a href="{{ url_for('yonghu_liebiao', page=pagination.next_num, keyword=keyword, dept=dept_id) }}">下一页</a>
             {% endif %}
         </div>
         {% endif %}

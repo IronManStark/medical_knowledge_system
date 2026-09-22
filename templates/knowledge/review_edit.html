@@ -1,0 +1,155 @@
+{% extends "layout.html" %}
+{% block title %}知识审核 - 医学知识库系统{% endblock %}
+{% block page_title %}知识审核{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>审核知识条目</h3>
+        <a href="{{ url_for('shenhe_liebiao') }}" class="btn btn-default btn-sm">← 返回待审核列表</a>
+    </div>
+    <div class="card-body">
+        <div class="flash flash-info" style="margin-bottom:16px;">
+            正在审核：<strong>{{ entry.title }}</strong>
+            （来源：{% if entry.source == 'generated' %}<span class="badge badge-manual">AI生成</span>{% else %}<span class="badge badge-manual">手工录入</span>{% endif %}
+            录入人：{{ entry.author.real_name if entry.author else '—' }}，
+            提交时间：{{ entry.updated_at|shijian_ge_shi }}）。
+            您可以直接修改下面内容，确认无误后点「通过并发布」；不合格请填写驳回理由后点「驳回」。
+        </div>
+        <form method="POST">
+            {{ form.csrf_token }}
+            <div class="form-row">
+                <div class="form-group" style="flex:2;">
+                    <label>知识标题 *</label>
+                    {{ form.title(class="form-control", placeholder="如：2型糖尿病") }}
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>所属分类</label>
+                    {{ form.category_id(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-row">
+                <div class="form-group" style="flex:1;">
+                    <label>ICD编码</label>
+                    {{ form.icd_code(class="form-control", placeholder="如：E11.9（可选）") }}
+                </div>
+                <div class="form-group" style="flex:1;">
+                    <label>证据等级</label>
+                    {{ form.evidence_level(class="form-control") }}
+                </div>
+            </div>
+            <div class="form-group">
+                <label>标签（逗号分隔）</label>
+                {{ form.tags(class="form-control", placeholder="如：内分泌,慢性病,代谢") }}
+            </div>
+            <div class="form-group">
+                <label>摘要</label>
+                {{ form.summary(class="form-control", rows=2) }}
+            </div>
+            <div class="form-group">
+                <label>定义</label>
+                {{ form.definition(class="form-control", rows=3) }}
+            </div>
+            <div class="form-group">
+                <label>病因</label>
+                {{ form.etiology(class="form-control", rows=3) }}
+            </div>
+            <div class="form-group">
+                <label>临床表现</label>
+                {{ form.clinical_manifestation(class="form-control", rows=4) }}
+            </div>
+            <div class="form-group">
+                <label>诊断标准</label>
+                {{ form.diagnosis(class="form-control", rows=4) }}
+            </div>
+            <div class="form-group">
+                <label>治疗方案</label>
+                {{ form.treatment(class="form-control", rows=4) }}
+            </div>
+            <div class="form-group">
+                <label>预防措施</label>
+                {{ form.prevention(class="form-control", rows=3) }}
+            </div>
+            <div class="form-group">
+                <label>参考文献</label>
+                {{ form.references(class="form-control", rows=3) }}
+            </div>
+
+            {% include "knowledge/_wenjian_pian.html" %}
+
+            <div class="form-group">
+                <label style="color:var(--danger);">驳回理由（点「驳回」时必填，会退回给录入人；点「通过」不用填）</label>
+                <textarea name="bohui_liyou" id="bohui_liyou" class="form-control" rows="3" placeholder="如：诊断标准依据不足，请补充最新指南出处后重新提交"></textarea>
+            </div>
+            <div class="form-group" style="margin-top:20px;">
+                <button type="submit" name="action" value="approve" class="btn btn-success">✓ 通过并发布</button>
+                <button type="button" class="btn btn-danger" id="bohui-an">✗ 驳回</button>
+                <a href="{{ url_for('shenhe_liebiao') }}" class="btn btn-default">取消</a>
+            </div>
+        </form>
+    </div>
+</div>
+
+{% include "knowledge/_wenjian_jiao.html" %}
+
+<div class="modal-overlay" id="bohui-modal" style="display:none;z-index:9999;">
+    <div class="modal-content">
+        <div class="modal-header">
+            <h3>确认驳回</h3>
+            <button type="button" class="modal-close" id="bohui-guan">×</button>
+        </div>
+        <div class="modal-body">
+            <p id="bohui-wen" style="margin:0;color:#475569;font-size:14px;line-height:1.8;"></p>
+        </div>
+        <div class="modal-actions">
+            <button type="button" class="btn btn-default" id="bohui-quxiao">取消</button>
+            <button type="button" class="btn btn-danger" id="bohui-queren">确定驳回</button>
+        </div>
+    </div>
+</div>
+
+<script>
+(function () {
+    var an = document.getElementById('bohui-an');
+    var mo = document.getElementById('bohui-modal');
+    var wen = document.getElementById('bohui-wen');
+    var biao = document.querySelector('form');
+    var kuang = document.getElementById('bohui_liyou');
+    if (!an || !mo || !biao || !kuang) { return; }
+
+    function dakai(wen_zi, shi_cuowu) {
+        wen.textContent = wen_zi;
+        document.getElementById('bohui-quxiao').style.display = shi_cuowu ? 'none' : '';
+        document.getElementById('bohui-queren').textContent = shi_cuowu ? '知道了' : '确定驳回';
+        mo.style.display = 'flex';
+    }
+    function guanbi() { mo.style.display = 'none'; }
+
+    an.addEventListener('click', function () {
+        var ly = kuang.value.trim();
+        if (!ly) {
+            dakai('驳回必须填写驳回理由，请先在页面底部填写后再点「驳回」。', true);
+            return;
+        }
+        dakai('确定驳回该知识？驳回理由将退回给录入人，录入人修改后可重新提交审核。', false);
+    });
+
+    document.getElementById('bohui-quxiao').addEventListener('click', guanbi);
+    document.getElementById('bohui-guan').addEventListener('click', guanbi);
+    document.getElementById('bohui-queren').addEventListener('click', function () {
+        if (document.getElementById('bohui-quxiao').style.display === 'none') {
+            guanbi();
+            kuang.focus();
+            kuang.style.borderColor = 'var(--danger)';
+            setTimeout(function () { kuang.style.borderColor = ''; }, 2500);
+            return;
+        }
+        var yin = document.createElement('input');
+        yin.type = 'hidden'; yin.name = 'action'; yin.value = 'reject';
+        biao.appendChild(yin);
+        biao.submit();
+    });
+    kuang.addEventListener('input', function () { kuang.style.borderColor = ''; });
+})();
+</script>
+{% endblock %}

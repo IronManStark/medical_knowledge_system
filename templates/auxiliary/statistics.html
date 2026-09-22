@@ -18,8 +18,8 @@
                         <td>{{ name }}</td>
                         <td>{{ count }}</td>
                         <td>
-                            <div style="background:#e8f0fe; border-radius:3px; height:16px; width:100%; position:relative;">
-                                <div style="background:#1a73e8; border-radius:3px; height:16px; width:{% if total > 0 %}{{ (count / total * 100)|round }}%{% else %}0%{% endif %};"></div>
+                            <div style="background:var(--primary-light); border-radius:999px; height:16px; width:100%; position:relative;">
+                                <div style="background:var(--primary); border-radius:999px; height:16px; width:{% if total > 0 %}{{ (count / total * 100)|round }}%{% else %}0%{% endif %};"></div>
                             </div>
                             <span style="font-size:11px; color:#666;">{% if total > 0 %}{{ (count / total * 100)|round(1) }}%{% else %}0%{% endif %}</span>
                         </td>
@@ -175,6 +175,61 @@
         </table>
         {% else %}
         <div class="empty-state">暂无查看记录</div>
+        {% endif %}
+    </div>
+</div>
+
+<div class="card" id="zhishi-quekou" style="margin-top:20px;border:1px solid #ffcc80;">
+    <div class="card-header" style="display:flex;justify-content:space-between;align-items:center;background:#fff8e1;">
+        <h3 style="color:#e65100;">⚠ 知识缺口</h3>
+        {% if gaps %}
+        <a href="{{ url_for('zhishi_quekou_daochu') }}" class="btn btn-success btn-sm">📥 导出Excel</a>
+        {% endif %}
+    </div>
+    <div class="card-body">
+        <div class="flash flash-info" style="margin-bottom:16px;">
+            本清单基于知识检索日志自动生成：统计用户搜索过但系统中没有任何知识条目命中的关键词。
+            共计分析 {{ gap_total }} 个不重复搜索关键词，以下 Top {{ gaps|length }} 个是"高频零结果"关键词。
+        </div>
+        {% if gaps %}
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th style="width:80px;">排名</th>
+                    <th>未命中关键词</th>
+                    <th style="width:140px;">搜索次数</th>
+                    <th style="width:140px;">操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for g in gaps %}
+                <tr>
+                    <td>
+                        {% if loop.index <= 3 %}
+                            <span style="font-size:16px;">{{ ['🥇','🥈','🥉'][loop.index0] }}</span>
+                        {% elif loop.index <= 10 %}
+                            <span style="color:#ff9800;font-weight:bold;">{{ loop.index }}</span>
+                        {% else %}
+                            {{ loop.index }}
+                        {% endif %}
+                    </td>
+                    <td style="font-weight:600;color:#c62828;">{{ g.keyword }}</td>
+                    <td>
+                        <span style="background:#ffcdd2;color:#b71c1c;padding:2px 10px;border-radius:10px;font-weight:600;">{{ g.count }} 次</span>
+                    </td>
+                    <td>
+                        <a href="{{ url_for('jiansuo') }}?q={{ g.keyword }}" target="_blank" class="btn btn-default btn-sm">🔍 去检索看看</a>
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+        {% else %}
+        <div class="empty-state" style="padding:50px 20px;">
+            <div style="font-size:42px;margin-bottom:14px;">🎉</div>
+            <div style="font-size:17px;color:#4caf50;margin-bottom:8px;">太棒了！暂时没有发现知识缺口</div>
+            <div style="font-size:13px;color:#888;">当前所有被搜索过的关键词都能命中知识条目。</div>
+        </div>
         {% endif %}
     </div>
 </div>

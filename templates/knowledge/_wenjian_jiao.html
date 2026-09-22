@@ -1,0 +1,169 @@
+<div class="img-hover-preview" id="tupian-yulan-fu" style="display:none;">
+    <img id="tupian-yulan-tu" src="" alt="预览">
+</div>
+
+<script>
+(function () {
+    var shurukuang = document.getElementById('wenjian-input');
+    var liebiao = document.getElementById('wenjian-liebiao');
+    var idJihe = document.getElementById('wenjian-id-jihe');
+    if (!shurukuang || !liebiao || !idJihe) { return; }
+    var yiShangChuan = [];
+
+    function naoCsrf() {
+        var i = document.querySelector('input[name="csrf_token"]');
+        return i ? i.value : '';
+    }
+    function genXinIdJihe() { idJihe.value = yiShangChuan.join(','); }
+
+    function wenjianLeixing(ming) {
+        var m = (ming || '').toLowerCase();
+        if (/\.(png|jpe?g|gif|bmp|webp|svg)$/.test(m)) return 'image';
+        if (m.endsWith('.pdf')) return 'pdf';
+        if (/\.(docx?|wps)$/.test(m)) return 'word';
+        return 'other';
+    }
+
+    function xianshiTupianYulan(url, li) {
+        var fu = document.getElementById('tupian-yulan-fu');
+        var tu = document.getElementById('tupian-yulan-tu');
+        tu.src = url;
+        var rect = li.getBoundingClientRect();
+        fu.style.left = (rect.right + 12) + 'px';
+        fu.style.top = rect.top + 'px';
+        fu.style.display = 'block';
+    }
+    function yincangTupianYulan() {
+        document.getElementById('tupian-yulan-fu').style.display = 'none';
+    }
+
+    function shanchuWenjian(fid, deleteUrl, li) {
+        if (!confirm('确认删除该文件？')) return;
+        fetch(deleteUrl, {
+            method: 'POST',
+            headers: { 'X-CSRFToken': naoCsrf() },
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            if (d.success) {
+                li.remove();
+                yiShangChuan = yiShangChuan.filter(function (x) { return x !== fid; });
+                genXinIdJihe();
+            } else {
+                alert('删除失败：' + (d.msg || '未知错误'));
+            }
+        }).catch(function () { alert('网络错误，删除失败'); });
+    }
+
+    function tianjiaHang(wj) {
+        var li = document.createElement('li');
+        li.className = 'file-item';
+        li.dataset.fid = wj.id;
+
+        var zuo = document.createElement('div');
+        zuo.className = 'file-info';
+
+        var biaoqian = '';
+        var lx = wenjianLeixing(wj.name);
+        if (lx === 'image') biaoqian = '🖼 图片';
+        else if (lx === 'pdf') biaoqian = '📕 PDF';
+        else if (lx === 'word') biaoqian = '📝 Word';
+        else biaoqian = '📄 文件';
+
+        var ming = document.createElement('span');
+        ming.className = 'file-name';
+        ming.textContent = biaoqian + '  ' + wj.name;
+        zuo.appendChild(ming);
+
+        var yulan = document.createElement('a');
+        yulan.className = 'file-preview-link';
+        yulan.href = wj.preview_url;
+        yulan.target = '_blank';
+        yulan.textContent = '预览';
+        if (lx === 'image') {
+            li.addEventListener('mouseenter', function () { xianshiTupianYulan(wj.preview_url, li); });
+            li.addEventListener('mouseleave', yincangTupianYulan);
+        }
+        zuo.appendChild(yulan);
+
+        var xiazai = document.createElement('a');
+        xiazai.className = 'file-download-link';
+        xiazai.href = wj.preview_url.replace('/preview', '/download');
+        xiazai.textContent = '下载';
+        xiazai.target = '_blank';
+        zuo.appendChild(xiazai);
+
+        var shanchu = document.createElement('button');
+        shanchu.type = 'button';
+        shanchu.className = 'btn btn-danger btn-sm file-delete-btn';
+        shanchu.textContent = '删除';
+        shanchu.onclick = function () { shanchuWenjian(wj.id, wj.delete_url, li); };
+        zuo.appendChild(shanchu);
+
+        li.appendChild(zuo);
+        liebiao.appendChild(li);
+
+        yiShangChuan.push(wj.id);
+        genXinIdJihe();
+    }
+
+    function shangChuanYiGe(file) {
+        var fd = new FormData();
+        fd.append('file', file);
+        fd.append('entry_id', '{{ entry.id if entry else 0 }}');
+        fd.append('category_id', (document.querySelector('select[name="category_id"]') || {}).value || '0');
+        fd.append('title', (document.querySelector('input[name="title"]') || {}).value || '未命名知识');
+
+        var li = document.createElement('li');
+        li.className = 'file-item file-uploading';
+        li.innerHTML = '<div class="file-info"><span class="file-name">⏳ 上传中：' + file.name + '</span></div>';
+        liebiao.appendChild(li);
+
+        fetch('/knowledge/file/upload', {
+            method: 'POST',
+            headers: { 'X-CSRFToken': naoCsrf() },
+            body: fd,
+        }).then(function (r) { return r.json(); }).then(function (d) {
+            li.remove();
+            if (d.success) {
+                tianjiaHang(d.file);
+            } else {
+                alert('上传失败：' + (d.msg || '未知错误'));
+            }
+        }).catch(function () {
+            li.remove();
+            alert('网络错误，上传失败');
+        });
+    }
+
+    shurukuang.addEventListener('change', function () {
+        for (var i = 0; i < shurukuang.files.length; i++) {
+            shangChuanYiGe(shurukuang.files[i]);
+        }
+        shurukuang.value = '';
+    });
+
+    var qu = document.getElementById('wenjian-shangchuan-qu');
+    ['dragenter', 'dragover'].forEach(function (ev) {
+        qu.addEventListener(ev, function (e) { e.preventDefault(); qu.classList.add('drag-over'); });
+    });
+    ['dragleave', 'drop'].forEach(function (ev) {
+        qu.addEventListener(ev, function (e) { e.preventDefault(); qu.classList.remove('drag-over'); });
+    });
+    qu.addEventListener('drop', function (e) {
+        for (var i = 0; i < e.dataTransfer.files.length; i++) {
+            shangChuanYiGe(e.dataTransfer.files[i]);
+        }
+    });
+
+    {% if entry and entry.files %}
+    {% for wj in entry.files.all() %}
+    tianjiaHang({
+        id: {{ wj.id }},
+        name: {{ wj.original_name|tojson }},
+        size: {{ wj.file_size }},
+        preview_url: "{{ url_for('wenjian_yulan', fid=wj.id) }}",
+        delete_url: "{{ url_for('wenjian_shanchu', fid=wj.id) }}",
+    });
+    {% endfor %}
+    {% endif %}
+})();
+</script>

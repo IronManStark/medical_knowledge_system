@@ -1,0 +1,453 @@
+{% extends "layout.html" %}
+{% block title %}构建知识图谱 - 医学知识库系统{% endblock %}
+{% block page_title %}构建知识图谱{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>✦ 构建知识图谱</h3>
+        <div style="font-size:13px;color:#888;margin-top:4px;">
+            选择源知识（疾病），批量添加关联关系，定义关联度（0.01-1.00），数值越大表示关系越紧密。
+        </div>
+    </div>
+    <div class="card-body">
+
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:24px;background:#f5f5f5;">
+            <h4 style="margin:0 0 16px;">添加关联关系</h4>
+            <form method="POST" action="{{ url_for('guan_lian_piliang') }}" id="add-link-form">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+
+                <div style="margin-bottom:16px;">
+                    <label style="font-size:12px;color:#666;display:block;margin-bottom:4px;">源知识（起点·仅疾病）</label>
+                    <div style="position:relative;max-width:400px;">
+                        <input type="text" id="source-input" class="form-control"
+                               list="source-datalist"
+                               placeholder="输入疾病名称检索…选中即填入"
+                               onchange="xiangzhong_yuan()" required>
+                        <input type="hidden" name="source_id" id="source-id-hidden">
+                        <datalist id="source-datalist">
+                            {% for e in jibing_entries %}
+                            <option value="{{ e.title }}" data-id="{{ e.id }}">
+                            {% endfor %}
+                        </datalist>
+                        <span id="source-ping" style="font-size:11px;color:#999;margin-top:2px;display:block;"></span>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:8px;">
+                    <label style="font-size:12px;color:#666;">关联目标（可添加多条）</label>
+                </div>
+                <div id="target-rows">
+                    <div class="target-row" style="display:flex;gap:10px;align-items:flex-end;margin-bottom:8px;flex-wrap:wrap;">
+                        <div style="min-width:130px;flex:0 0 130px;">
+                            <select name="link_type[]" class="form-control link-type-sel">
+                                {% for gx in guanxi_leixing %}
+                                <option value="{{ gx }}">{{ gx }}</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div style="min-width:100px;flex:0 0 100px;">
+                            <input type="number" name="strength[]" class="form-control strength-input"
+                                   value="0.90" step="0.01" min="0.01" max="1.00" style="width:100%;">
+                        </div>
+                        <div style="flex:1;min-width:250px;position:relative;">
+                            <input type="text" class="form-control target-input"
+                                   list="target-datalist"
+                                   placeholder="检索目标知识…选中即填入"
+                                   onchange="xiangzhong_mubiao(this)">
+                            <input type="hidden" name="target_id[]" class="target-hidden" required>
+                        </div>
+                        <button type="button" class="btn btn-default btn-sm del-row" style="flex:0 0 auto;" onclick="shan_chu_hang(this)" title="删除此行">✕</button>
+                    </div>
+                </div>
+
+                <div style="margin-bottom:16px;">
+                    <button type="button" class="btn btn-default btn-sm" onclick="jia_hang()">+ 再加一行</button>
+                </div>
+
+                <div style="margin-top:8px;display:flex;gap:10px;align-items:center;">
+                    <button type="submit" class="btn btn-primary btn-sm"
+                            onclick="return jiancha_biao();">批量添加关联</button>
+                    <span style="font-size:11px;color:#888;">⚠ 目标不能和源相同，空行自动跳过</span>
+                </div>
+
+                <datalist id="target-datalist">
+                    {% for zu in fenlei_zu %}
+                    {% for e in zu.entries %}
+                    <option value="{{ e.title }}" data-id="{{ e.id }}">
+                    {% endfor %}
+                    {% endfor %}
+                </datalist>
+            </form>
+        </div>
+
+        <div style="border:1px solid #e0e0e0;border-radius:8px;padding:20px;margin-bottom:24px;">
+            <h4 style="margin:0 0 16px;">✅ 人工关联关系（{{ xian_you|length }} 条）</h4>
+            {% if xian_you %}
+            <div style="max-height:380px;overflow-y:auto;">
+            <table class="data-table">
+                <thead style="position:sticky;top:0;background:#fff;z-index:2;">
+                    <tr>
+                        <th>ID</th>
+                        <th>源知识</th>
+                        <th>关系类型</th>
+                        <th>目标知识</th>
+                        <th>关联度</th>
+                        <th>创建时间</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lk in xian_you %}
+                    <tr>
+                        <td>{{ lk.id }}</td>
+                        <td>{{ lk.source.title[:25] if lk.source else '已删除' }}</td>
+                        <td>
+                            <span style="background:#e3f2fd;color:#1565c0;padding:2px 8px;border-radius:3px;font-size:12px;">
+                                {{ lk.link_type }}
+                            </span>
+                        </td>
+                        <td>{{ lk.target.title[:25] if lk.target else '已删除' }}</td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="width:60px;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+                                    <div class="strength-bar" data-strength="{{ lk.strength }}"
+                                         style="height:100%;"></div>
+                                </div>
+                                <span style="font-size:12px;font-weight:600;">{{ "%.2f"|format(lk.strength) }}</span>
+                            </div>
+                        </td>
+                        <td>{{ lk.created_at.strftime('%Y-%m-%d %H:%M') if lk.created_at else '—' }}</td>
+                        <td>
+                            {% if lk.source and lk.target %}
+                            <form method="POST" action="{{ url_for('guan_lian_shanchu', lid=lk.id) }}" style="margin:0;"
+                                  onsubmit="return confirm('确定删除这条关联？');">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="lai" value="build">
+                                <button type="submit" style="background:none;border:none;color:#f44336;cursor:pointer;">删除</button>
+                            </form>
+                            {% else %}
+                            <span style="color:#999;">条目已删</span>
+                            {% endif %}
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            {% else %}
+            <div style="padding:40px;text-align:center;color:#999;">
+                暂无人工关联关系，请在上方添加
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="border:1px solid #ffcc80;border-radius:8px;padding:20px;margin-bottom:24px;background:#fffaf0;">
+            <h4 style="margin:0 0 4px;">⚡ 自动构建的关联关系（{{ zidong|length }} 条）</h4>
+            <div style="font-size:12px;color:#888;margin-bottom:12px;">
+                系统按分类/标签/正文关键词重叠自动算出的关联。可直接<b>编辑关联度/类型</b>（会自动转为人工关联），或<b>一键升级为人工</b>（保留当前值），也可删除。
+            </div>
+
+            {% if zidong %}
+            <div style="margin-bottom:10px;display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+                <input type="text" id="zidong-sousuo" placeholder="按知识名筛选…"
+                       style="padding:4px 10px;border:1px solid #ddd;border-radius:4px;font-size:12px;width:220px;"
+                       oninput="fenye_zidong()">
+                <label style="font-size:12px;color:#666;white-space:nowrap;">每页</label>
+                <select id="zidong-meiyiye" style="padding:3px 6px;border:1px solid #ddd;border-radius:4px;font-size:12px;"
+                        onchange="fenye_zidong()">
+                    <option value="10">10</option>
+                    <option value="20" selected>20</option>
+                    <option value="50">50</option>
+                    <option value="100">100</option>
+                </select>
+                <span id="zidong-tongji" style="font-size:12px;color:#888;"></span>
+            </div>
+            <div style="border:1px solid #ffe0b2;border-radius:6px;background:#fff;overflow:hidden;">
+            <table class="data-table" id="zidong-biao">
+                <thead style="background:#fff3e0;">
+                    <tr>
+                        <th>ID</th>
+                        <th>源知识</th>
+                        <th>关系类型</th>
+                        <th>目标知识</th>
+                        <th>关联度</th>
+                        <th>操作</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for lk in zidong %}
+                    <tr class="zidong-hang" data-s="{{ (lk.source.title if lk.source else '')|lower }}"
+                        data-t="{{ (lk.target.title if lk.target else '')|lower }}"
+                        style="display:none;">
+                        <td style="color:#999;">{{ lk.id }}</td>
+                        <td>
+                            {% if lk.source %}
+                            <a href="{{ url_for('tiaomu_xiangqing', eid=lk.source.id, lai='build') }}" target="_blank"
+                               style="color:#1565c0;">{{ lk.source.title[:30] }}</a>
+                            {% else %}<span style="color:#999;">已删除</span>{% endif %}
+                        </td>
+                        <td>
+                            <span class="gx-biaoqian" style="background:#fff3e0;color:#ef6c00;padding:2px 8px;border-radius:3px;font-size:12px;">{{ lk.link_type }}</span>
+                        </td>
+                        <td>
+                            {% if lk.target %}
+                            <a href="{{ url_for('tiaomu_xiangqing', eid=lk.target.id, lai='build') }}" target="_blank"
+                               style="color:#1565c0;">{{ lk.target.title[:30] }}</a>
+                            {% else %}<span style="color:#999;">已删除</span>{% endif %}
+                        </td>
+                        <td>
+                            <div style="display:flex;align-items:center;gap:6px;">
+                                <div style="width:60px;height:8px;background:#e0e0e0;border-radius:4px;overflow:hidden;">
+                                    <div class="strength-bar" data-strength="{{ lk.strength }}"
+                                         style="height:100%;"></div>
+                                </div>
+                                <span style="font-size:12px;font-weight:600;">{{ "%.2f"|format(lk.strength) }}</span>
+                            </div>
+                        </td>
+                        <td>
+                            <div style="display:flex;gap:6px;flex-wrap:nowrap;">
+                                <button class="btn btn-default btn-sm" style="font-size:11px;padding:2px 8px;"
+                                        onclick="zhankai_bianji({{ lk.id }}, this)">改</button>
+                                <form method="POST" action="{{ url_for('guan_lian_shengji', lid=lk.id) }}" style="margin:0;display:inline;"
+                                      onsubmit="return confirm('升级为人工关联？\n保留当前值，下次自动构建时不会被清理。');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <button type="submit" class="btn btn-default btn-sm" style="font-size:11px;padding:2px 8px;color:#2e7d32;">升级</button>
+                                </form>
+                                <form method="POST" action="{{ url_for('guan_lian_shanchu', lid=lk.id) }}" style="margin:0;display:inline;"
+                                      onsubmit="return confirm('删除这条自动关联？');">
+                                    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                    <input type="hidden" name="lai" value="build">
+                                    <button type="submit" class="btn btn-default btn-sm" style="font-size:11px;padding:2px 8px;color:#f44336;">删</button>
+                                </form>
+                            </div>
+                        </td>
+                    </tr>
+                    <tr class="zidong-bianji" id="bianji-{{ lk.id }}" style="display:none;background:#fffde7;">
+                        <td colspan="6">
+                            <form method="POST" action="{{ url_for('guan_lian_gengxin', lid=lk.id) }}" style="display:flex;gap:12px;align-items:center;flex-wrap:wrap;padding:6px 0;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <span style="font-size:12px;color:#666;">关系类型</span>
+                                <select name="link_type" class="form-control" style="max-width:130px;">
+                                    {% for gx in guanxi_leixing %}
+                                    <option value="{{ gx }}" {% if gx == lk.link_type %}selected{% endif %}>{{ gx }}</option>
+                                    {% endfor %}
+                                </select>
+                                <span style="font-size:12px;color:#666;">关联度</span>
+                                <input type="number" name="strength" step="0.01" min="0.01" max="1.00"
+                                       value="{{ '%.2f'|format(lk.strength) }}" style="max-width:100px;" class="form-control">
+                                <button type="submit" class="btn btn-primary btn-sm">保存（升级为人工）</button>
+                                <button type="button" class="btn btn-default btn-sm" onclick="shouqi_bianji({{ lk.id }})">取消</button>
+                            </form>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+            </div>
+            <div id="zidong-fenye" style="display:flex;justify-content:space-between;align-items:center;padding:8px 12px;border:1px solid #ffe0b2;border-top:none;border-radius:0 0 6px 6px;background:#fff8e1;flex-wrap:wrap;gap:8px;">
+                <span id="zidong-yeinfo" style="font-size:12px;color:#888;"></span>
+                <div id="zidong-yeanniu" style="display:flex;gap:4px;align-items:center;flex-wrap:wrap;"></div>
+            </div>
+            {% else %}
+            <div style="padding:30px;text-align:center;color:#999;">
+                当前没有自动关联。点击下方 ⚡ 自动构建关联 按钮先生成。
+            </div>
+            {% endif %}
+        </div>
+
+        <div style="border:1px dashed #ffcc80;border-radius:8px;padding:20px;background:#fff8e1;">
+            <h4 style="margin:0 0 8px;">⚡ 自动构建（辅助）</h4>
+            <div style="font-size:12px;color:#888;margin-bottom:12px;">
+                自动扫描所有已发布知识条目，按分类、标签、正文关键词重叠自动计算关联关系。<br>
+                <b>注意</b>：此操作只清理旧的自算关联（is_explicit=False），不影响人工添加的关联。
+            </div>
+            <form method="POST" action="{{ url_for('zhishi_tupu_goujian') }}"
+                  onsubmit="return confirm('确定要自动构建知识图谱吗？\n\n将清理旧的自算关联并重新计算所有已发布知识间的关系。');">
+                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                <button type="submit" class="btn btn-default btn-sm">⚡ 自动构建关联</button>
+                <a href="{{ url_for('zhishi_tupu') }}" class="btn btn-default btn-sm" style="margin-left:8px;">🕸 查看图谱</a>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.querySelectorAll('.strength-bar').forEach(function(bar) {
+    var s = parseFloat(bar.dataset.strength) || 0;
+    bar.style.width = (s * 100) + '%';
+    if (s >= 0.8) bar.style.background = '#f44336';
+    else if (s >= 0.5) bar.style.background = '#ff9800';
+    else bar.style.background = '#4caf50';
+});
+
+function _qu_ddl_id(datalistId, val) {
+    var dl = document.getElementById(datalistId);
+    if (!dl) return 0;
+    var opts = dl.querySelectorAll('option');
+    for (var i = 0; i < opts.length; i++) {
+        if (opts[i].value === val) {
+            var id = parseInt(opts[i].getAttribute('data-id') || '0', 10);
+            return id;
+        }
+    }
+    return 0;
+}
+
+function xiangzhong_yuan() {
+    var input = document.getElementById('source-input');
+    var hidden = document.getElementById('source-id-hidden');
+    var ping = document.getElementById('source-ping');
+    var id = _qu_ddl_id('source-datalist', input.value);
+    if (id) {
+        hidden.value = id;
+        ping.textContent = '✓ 已选中: ' + input.value + ' (ID:' + id + ')';
+        ping.style.color = '#4caf50';
+    } else {
+        hidden.value = '';
+        ping.textContent = '⚠ 输入内容未匹配到任何疾病';
+        ping.style.color = '#f44336';
+    }
+}
+
+function xiangzhong_mubiao(input) {
+    var hang = input.closest('.target-row');
+    var hidden = hang.querySelector('.target-hidden');
+    var id = _qu_ddl_id('target-datalist', input.value);
+    if (id) {
+        hidden.value = id;
+        input.style.borderColor = '#4caf50';
+    } else {
+        hidden.value = '';
+        input.style.borderColor = '';
+    }
+}
+
+function jia_hang() {
+    var mo_ban = document.querySelector('.target-row');
+    var xin = mo_ban.cloneNode(true);
+    xin.querySelector('.strength-input').value = '0.90';
+    var ti = xin.querySelector('.target-input');
+    ti.value = '';
+    ti.style.borderColor = '';
+    xin.querySelector('.target-hidden').value = '';
+    document.getElementById('target-rows').appendChild(xin);
+}
+
+function shan_chu_hang(btn) {
+    var hang = btn.parentNode;
+    var suo_you_hang = document.querySelectorAll('.target-row');
+    if (suo_you_hang.length <= 1) {
+        alert('至少保留一行');
+        return;
+    }
+    hang.remove();
+}
+
+function jiancha_biao() {
+    var src = document.getElementById('source-id-hidden').value;
+    if (!src) { alert('请先选中源知识（从搜索建议中点选）'); return false; }
+    var you_xiao = 0;
+    document.querySelectorAll('.target-hidden').forEach(function(h) {
+        if (h.value && h.value !== src) you_xiao++;
+    });
+    if (you_xiao === 0) {
+        alert('至少添加一条有效的目标关联');
+        return false;
+    }
+    return true;
+}
+
+var _zidong_yema = 1;
+
+function fenye_zidong() {
+    var kw = document.getElementById('zidong-sousuo').value.trim().toLowerCase();
+    var meiyiye = parseInt(document.getElementById('zidong-meiyiye').value, 10);
+    var hang = document.querySelectorAll('.zidong-hang');
+    var bianji_hang = document.querySelectorAll('.zidong-bianji');
+
+    bianji_hang.forEach(function(r) { r.style.display = 'none'; });
+
+    var pipei_hang = [];
+    hang.forEach(function(h) {
+        var pipei = !kw || h.dataset.s.indexOf(kw) >= 0 || h.dataset.t.indexOf(kw) >= 0;
+        if (pipei) pipei_hang.push(h);
+    });
+
+    var zongshu = pipei_hang.length;
+    var zong_ye = Math.max(1, Math.ceil(zongshu / meiyiye));
+    if (_zidong_yema > zong_ye) _zidong_yema = zong_ye;
+    if (_zidong_yema < 1) _zidong_yema = 1;
+
+    var kaishi = (_zidong_yema - 1) * meiyiye;
+    var jieshu = Math.min(kaishi + meiyiye, zongshu);
+
+    hang.forEach(function(h) { h.style.display = 'none'; });
+
+    for (var i = kaishi; i < jieshu; i++) {
+        pipei_hang[i].style.display = '';
+        var lid = pipei_hang[i].querySelector('td').textContent.trim();
+        var bj = document.getElementById('bianji-' + lid);
+    }
+
+    document.getElementById('zidong-tongji').textContent = '共 ' + zongshu + ' 条';
+    document.getElementById('zidong-yeinfo').textContent =
+        '第 ' + _zidong_yema + ' / ' + zong_ye + ' 页（' + (kaishi + 1) + '-' + jieshu + ' 条）';
+
+    var anniu = document.getElementById('zidong-yeanniu');
+    anniu.innerHTML = '';
+
+    function _jia_an(wen, ye, jin) {
+        var b = document.createElement('button');
+        b.className = 'btn btn-default btn-sm';
+        b.style.cssText = 'font-size:11px;padding:2px 8px;min-width:30px;';
+        b.textContent = wen;
+        if (jin || ye === _zidong_yema) {
+            b.style.opacity = '0.5';
+            b.style.cursor = 'default';
+        } else {
+            b.onclick = function() { _zidong_yema = ye; fenye_zidong(); };
+        }
+        anniu.appendChild(b);
+    }
+
+    _jia_an('«', 1, _zidong_yema === 1);
+    _jia_an('‹', _zidong_yema - 1, _zidong_yema === 1);
+
+    var kaishi_ye = Math.max(1, _zidong_yema - 2);
+    var jieshu_ye = Math.min(zong_ye, _zidong_yema + 2);
+    for (var y = kaishi_ye; y <= jieshu_ye; y++) {
+        _jia_an(String(y), y, false);
+        if (y === _zidong_yema) {
+            var last = anniu.lastChild;
+            last.style.background = '#1565c0';
+            last.style.color = '#fff';
+            last.style.borderColor = '#1565c0';
+        }
+    }
+
+    _jia_an('›', _zidong_yema + 1, _zidong_yema === zong_ye);
+    _jia_an('»', zong_ye, _zidong_yema === zong_ye);
+}
+
+function zhankai_bianji(lid, btn) {
+    document.querySelectorAll('.zidong-bianji').forEach(function(r) {
+        r.style.display = 'none';
+    });
+    var bj = document.getElementById('bianji-' + lid);
+    if (bj) bj.style.display = '';
+}
+
+function shouqi_bianji(lid) {
+    var bj = document.getElementById('bianji-' + lid);
+    if (bj) bj.style.display = 'none';
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    if (document.querySelectorAll('.zidong-hang').length > 0) {
+        _zidong_yema = 1;
+        fenye_zidong();
+    }
+});
+</script>
+{% endblock %}

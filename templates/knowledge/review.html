@@ -5,9 +5,24 @@
 {% block content %}
 <div class="card">
     <div class="card-header">
-        <h3>待审核知识列表</h3>
+        <h3>知识审核</h3>
     </div>
     <div class="card-body">
+        <div class="shenhe-biaoqian">
+            {% set biao_qian = [
+                ('all', '全部'),
+                ('deng', '待审核'),
+                ('rejected', '已驳回'),
+                ('published', '已通过发布'),
+            ] %}
+            {% for zhi, ming in biao_qian %}
+            <a href="{{ url_for('shenhe_liebiao', zhuangtai=zhi) }}"
+               class="shenhe-xiang {{ 'dangqian' if dangqian == zhi else '' }}">
+                {{ ming }}<span class="shenhe-shu">{{ tongji[zhi] }}</span>
+            </a>
+            {% endfor %}
+        </div>
+
         <table class="data-table">
             <thead>
                 <tr>
@@ -17,6 +32,7 @@
                     <th>来源</th>
                     <th>摘要</th>
                     <th>创建人</th>
+                    <th>审核状态</th>
                     <th>提交时间</th>
                     <th>操作</th>
                 </tr>
@@ -31,30 +47,61 @@
                         {% if e.source == 'manual' %}
                             <span class="badge badge-manual">手工</span>
                         {% else %}
-                            <span class="badge badge-manual">系统生成</span>
+                            <span class="badge badge-manual">AI+人工</span>
                         {% endif %}
                     </td>
-                    <td style="max-width:300px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.summary or '—' }}</td>
+                    <td style="max-width:260px; overflow:hidden; text-overflow:ellipsis; white-space:nowrap;">{{ e.summary or '—' }}</td>
                     <td>{{ e.author.real_name if e.author else '—' }}</td>
-                    <td>{{ e.updated_at|fmt_date }}</td>
                     <td>
-                        <a href="{{ url_for('entry_detail', eid=e.id) }}" class="btn btn-default btn-sm">查看</a>
-                        <form method="POST" action="{{ url_for('knowledge_approve', eid=e.id) }}" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-success btn-sm">通过</button>
-                        </form>
-                        <form method="POST" action="{{ url_for('knowledge_reject', eid=e.id) }}" style="display:inline;">
-                            <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
-                            <button type="submit" class="btn btn-danger btn-sm btn-reject">驳回</button>
-                        </form>
+                        {% if e.status == 'pending' %}
+                            <span class="badge badge-pending">待审核</span>
+                        {% elif e.status == 'rejected' %}
+                            <span class="badge badge-rejected">已驳回</span>
+                        {% elif e.status == 'published' %}
+                            <span class="badge badge-published">已通过发布</span>
+                        {% else %}
+                            <span class="badge badge-draft">{{ e.status|zhuangtai_zhuan_hua }}</span>
+                        {% endif %}
+                    </td>
+                    <td>{{ e.updated_at|shijian_ge_shi }}</td>
+                    <td>
+                        <a href="{{ url_for('tiaomu_xiangqing', eid=e.id) }}?lai=shenhe" class="btn btn-default btn-sm">查看</a>
+                        {% if e.status == 'pending' %}
+                            <a href="{{ url_for('shenhe_shenhe', eid=e.id) }}" class="btn btn-warning btn-sm">审核</a>
+                        {% endif %}
                     </td>
                 </tr>
                 {% endfor %}
                 {% if not entries %}
-                <tr><td colspan="8"><div class="empty-state"><div class="icon">✓</div>暂无待审核条目</div></td></tr>
+                <tr><td colspan="9"><div class="empty-state"><div class="icon">✓</div>
+                    {% if dangqian == 'deng' %}暂无待审核条目
+                    {% elif dangqian == 'rejected' %}暂无已驳回条目
+                    {% elif dangqian == 'published' %}暂无已通过发布条目
+                    {% else %}暂无审核记录{% endif %}
+                </div></td></tr>
                 {% endif %}
             </tbody>
         </table>
     </div>
 </div>
+
+<style>
+.shenhe-biaoqian { display: flex; gap: 10px; margin-bottom: 18px; flex-wrap: wrap; }
+.shenhe-xiang {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 6px 16px; border-radius: 20px; font-size: 13px;
+    background: #f1f5f9; color: #475569; text-decoration: none;
+    border: 1px solid transparent; transition: all .15s;
+}
+.shenhe-xiang:hover { background: #e2e8f0; color: #0f766e; }
+.shenhe-xiang.dangqian {
+    background: var(--primary, #0d9488); color: #fff; font-weight: 600;
+}
+.shenhe-xiang.dangqian .shenhe-shu { background: rgba(255,255,255,0.25); color: #fff; }
+.shenhe-shu {
+    min-width: 20px; padding: 0 6px; height: 18px; line-height: 18px;
+    text-align: center; border-radius: 9px; font-size: 12px;
+    background: #e2e8f0; color: #64748b;
+}
+</style>
 {% endblock %}

@@ -1,0 +1,119 @@
+{% extends "layout.html" %}
+{% block title %}知识生成 - 医学知识库系统{% endblock %}
+{% block page_title %}知识生成{% endblock %}
+
+{% block content %}
+<div class="card">
+    <div class="card-header">
+        <h3>我的生成知识（AI生成箱）</h3>
+        <a href="{{ url_for('zhishi_shengcheng') }}" class="btn btn-success btn-sm">⚡ AI知识生成</a>
+    </div>
+    <div class="card-body">
+        <form class="search-bar" method="GET">
+            <select name="status" class="form-control">
+                <option value="draft" {% if status == 'draft' %}selected{% endif %}>草稿（默认）</option>
+                <option value="pending" {% if status == 'pending' %}selected{% endif %}>待审核</option>
+                <option value="rejected" {% if status == 'rejected' %}selected{% endif %}>已驳回</option>
+                <option value="published" {% if status == 'published' %}selected{% endif %}>已发布</option>
+                <option value="tingyong" {% if status == 'tingyong' %}selected{% endif %}>已停用</option>
+                <option value="" {% if status == '' %}selected{% endif %}>全部状态</option>
+            </select>
+            <input type="text" name="keyword" class="form-control" placeholder="知识标题" value="{{ keyword }}">
+            <button type="submit" class="btn btn-primary btn-sm">查询</button>
+            <a href="{{ url_for('wo_de_shengcheng') }}" class="btn btn-default btn-sm">重置</a>
+        </form>
+
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>ID</th>
+                    <th>知识标题</th>
+                    <th>所属分类</th>
+                    <th>来源</th>
+                    <th>编辑状态</th>
+                    <th>版本</th>
+                    <th>更新时间</th>
+                    <th>操作</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for e in entries %}
+                <tr>
+                    <td>{{ e.id }}</td>
+                    <td>{{ e.title }}</td>
+                    <td>{{ e.category.name if e.category else '—' }}</td>
+                    <td>
+                        <span class="badge badge-manual">AI+人工</span>
+                    </td>
+                    <td>
+                        {% if e.yi_tingyong %}
+                        <span class="badge badge-draft">已停用</span>
+                        <span style="color:var(--danger);font-size:12px;margin-left:4px;">⛔ 已停用，如需启用请由管理员在「知识列表」操作</span>
+                        {% else %}
+                        <span class="badge badge-{{ e.status }}">{{ e.status|zhuangtai_zhuan_hua }}</span>
+                        {% if e.status == 'pending' %}
+                            <span style="color:var(--warning);font-size:12px;margin-left:4px;">🔒 审核中，暂不可改</span>
+                        {% elif e.status == 'rejected' %}
+                            <span style="color:var(--danger);font-size:12px;margin-left:4px;">已驳回，可修改后重新提交</span>
+                        {% endif %}
+                        {% endif %}
+                        {% if e.status == 'rejected' and e.bohui_liyou and not e.yi_tingyong %}
+                        <div style="color:var(--danger);font-size:12px;margin-top:4px;">驳回理由：{{ e.bohui_liyou }}</div>
+                        {% endif %}
+                    </td>
+                    <td>v{{ e.version }}</td>
+                    <td>{{ e.updated_at|shijian_ge_shi }}</td>
+                    <td>
+                        <a href="{{ url_for('tiaomu_xiangqing', eid=e.id) }}?lai=shengcheng" class="btn btn-default btn-sm">查看</a>
+
+                        {% if e.yi_tingyong %}
+                            <span class="btn btn-hui btn-sm" title="已停用，请由管理员在知识列表处理">编辑</span>
+                            <span class="btn btn-hui btn-sm" title="已停用">已停用</span>
+                        {% elif e.status == 'draft' or e.status == 'rejected' %}
+                            <a href="{{ url_for('zhishi_bianji', eid=e.id) }}?lai=shengcheng" class="btn btn-default btn-sm">编辑</a>
+                            <form method="POST" action="{{ url_for('zhishi_tijiao', eid=e.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <input type="hidden" name="lai" value="shengcheng">
+                                <button type="submit" class="btn btn-info btn-sm">
+                                    {% if e.status == 'rejected' %}重新提交{% else %}提交审核{% endif %}
+                                </button>
+                            </form>
+                            <form method="POST" action="{{ url_for('zhishi_shanchu', eid=e.id) }}" style="display:inline;">
+                                <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+                                <button type="submit" class="btn btn-danger btn-sm btn-delete">删除</button>
+                            </form>
+                        {% elif e.status == 'pending' %}
+                            <span class="btn btn-hui btn-sm" title="审核期间不能编辑">编辑</span>
+                            <span class="btn btn-hui btn-sm" title="审核中">待审核</span>
+                        {% else %}
+                            <span class="btn btn-hui btn-sm" title="已发布上线">编辑</span>
+                        {% endif %}
+                    </td>
+                </tr>
+                {% endfor %}
+                {% if not entries %}
+                <tr><td colspan="8"><div class="empty-state"><div class="icon">⚡</div>暂无AI生成知识，点击右上角「⚡ AI知识生成」开始生成</div></td></tr>
+                {% endif %}
+            </tbody>
+        </table>
+
+        {% if pagination.pages > 1 %}
+        <div class="pagination">
+            {% if pagination.has_prev %}
+                <a href="{{ url_for('wo_de_shengcheng', page=pagination.prev_num, status=status, keyword=keyword) }}">上一页</a>
+            {% endif %}
+            {% for p in range(1, pagination.pages + 1) %}
+                {% if p == pagination.page %}
+                    <span class="current">{{ p }}</span>
+                {% else %}
+                    <a href="{{ url_for('wo_de_shengcheng', page=p, status=status, keyword=keyword) }}">{{ p }}</a>
+                {% endif %}
+            {% endfor %}
+            {% if pagination.has_next %}
+                <a href="{{ url_for('wo_de_shengcheng', page=pagination.next_num, status=status, keyword=keyword) }}">下一页</a>
+            {% endif %}
+        </div>
+        {% endif %}
+    </div>
+</div>
+{% endblock %}

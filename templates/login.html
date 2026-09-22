@@ -10,7 +10,7 @@
 <script>
 function refreshCaptcha() {
     var img = document.getElementById('captcha-img');
-    img.src = "{{ url_for('captcha') }}?t=" + Date.now();
+    img.src = "{{ url_for('yanzhengma') }}?t=" + Date.now();
 }
 </script>
 <div class="login-wrapper">
@@ -26,7 +26,7 @@ function refreshCaptcha() {
                     <div class="flash flash-{{ category }}">{{ message }}</div>
                 {% endfor %}
             {% endwith %}
-            <form method="POST" action="{{ url_for('login') }}">
+            <form method="POST" action="{{ url_for('dengluye') }}">
                 {{ form.csrf_token }}
                 <div class="form-group">
                     <label>登录账号</label>
@@ -40,7 +40,7 @@ function refreshCaptcha() {
                     <label>验证码</label>
                     <div class="captcha-row">
                         {{ form.captcha(class="form-control captcha-input", placeholder="请输入验证码") }}
-                        <img id="captcha-img" src="{{ url_for('captcha') }}" alt="验证码" class="captcha-img">
+                        <img id="captcha-img" src="{{ url_for('yanzhengma') }}" alt="验证码" class="captcha-img">
                         <button type="button" class="btn-refresh" onclick="refreshCaptcha()">刷新</button>
                     </div>
                 </div>

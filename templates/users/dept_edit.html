@@ -6,7 +6,7 @@
 <div class="card">
     <div class="card-header">
         <h3>{% if mode == 'create' %}新增科室信息{% else %}编辑科室信息{% endif %}</h3>
-        <a href="{{ url_for('dept_list') }}" class="btn btn-default btn-sm">← 返回列表</a>
+        <a href="{{ url_for('keshi_liebiao') }}" class="btn btn-default btn-sm">← 返回列表</a>
     </div>
     <div class="card-body">
         <form method="POST">
@@ -37,7 +37,7 @@
             </div>
             <div class="form-group">
                 <button type="submit" class="btn btn-primary">保 存</button>
-                <a href="{{ url_for('dept_list') }}" class="btn btn-default">取 消</a>
+                <a href="{{ url_for('keshi_liebiao') }}" class="btn btn-default">取 消</a>
             </div>
         </form>
     </div>

@@ -1,0 +1,12 @@
+<div class="form-group" id="wenjian-qu">
+    <label>相关文件（支持图片、PDF、Word 等，可多选；图片可悬浮预览，文档点击预览）</label>
+    <div class="file-upload-zone" id="wenjian-shangchuan-qu">
+        <input type="file" id="wenjian-input" multiple style="display:none;">
+        <div class="file-upload-hint" onclick="document.getElementById('wenjian-input').click()">
+            <span class="upload-icon">📎</span>
+            <span>点击选择文件，或拖拽文件到此处</span>
+        </div>
+    </div>
+    <ul class="file-list" id="wenjian-liebiao"></ul>
+    <input type="hidden" name="file_ids" id="wenjian-id-jihe" value="">
+</div>
